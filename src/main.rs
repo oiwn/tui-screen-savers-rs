@@ -2,7 +2,7 @@ use std::char;
 // Rust implementation of classic Matrix screensaver
 use std::collections::HashMap;
 use std::io::{stdout, Stdout, Write};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use crossterm::{
     cursor, event, execute,
@@ -33,7 +33,7 @@ static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
 });
 
 static INITIAL_WORMS: u16 = 60;
-static MAX_WORMS: u16 = 40;
+// static MAX_WORMS: u16 = 40;
 
 #[derive(Clone)]
 struct VerticalWorm {
@@ -41,7 +41,7 @@ struct VerticalWorm {
     fx: f32,
     fy: f32,
     max_length: u8,
-    finish: bool,
+    // finish: bool,
     speed: u8,
     rng: rand::prelude::ThreadRng,
 }
@@ -58,7 +58,7 @@ impl VerticalWorm {
             fy: 0.0,
             max_length: rng.gen_range(4..10),
             speed: rng.gen_range(2..20),
-            finish: false,
+            // finish: false,
             rng,
         }
     }
