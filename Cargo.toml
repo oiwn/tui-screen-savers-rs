@@ -9,3 +9,10 @@ edition = "2021"
 crossterm = "0.25.0"
 once_cell = "1.16.0"
 rand = "0.8.5"
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
