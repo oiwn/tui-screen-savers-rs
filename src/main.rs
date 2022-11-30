@@ -1,17 +1,62 @@
-use crossterm::{cursor, execute, terminal, Result};
-use std::io::stdout;
+use crossterm::{self, cursor, execute, terminal};
+use pico_args;
+use std::{io, process};
 
 mod matrix;
 
-fn main() -> Result<()> {
-    let mut stdout = stdout();
+const HELP: &str = "\
+Terminal screensavers
+";
+
+#[derive(Debug)]
+struct AppArgs {
+    screen_saver: String,
+}
+
+fn main() -> crossterm::Result<()> {
+    let args = match parse_args() {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("Error parsing args: {}", e);
+            process::exit(1);
+        }
+    };
+    let mut stdout = io::stdout();
 
     terminal::enable_raw_mode()?;
     execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide)?;
 
-    matrix::run_loop(&mut stdout)?;
+    match args.screen_saver.as_str() {
+        "matrix" => matrix::run_loop(&mut stdout)?,
+        _ => matrix::run_loop(&mut stdout)?,
+    };
 
     execute!(stdout, cursor::Show, terminal::LeaveAlternateScreen)?;
     terminal::disable_raw_mode()?;
     Ok(())
+}
+
+fn parse_args() -> Result<AppArgs, pico_args::Error> {
+    let mut pargs = pico_args::Arguments::from_env();
+
+    // println!("Pargs: {:?}", pargs);
+
+    if pargs.contains(["-h", "--help"]) {
+        print!("{}", HELP);
+        process::exit(0);
+    }
+
+    let args = AppArgs {
+        // default screensaver is "matrix"
+        screen_saver: pargs.free_from_str().map_or("matrix".into(), |arg| arg),
+    };
+
+    println!("Args: {:?}", args);
+
+    let remaining = pargs.finish();
+    if !remaining.is_empty() {
+        eprintln!("Warning: unused arguments left: {:?}", remaining);
+    }
+
+    Ok(args)
 }
