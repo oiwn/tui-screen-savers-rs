@@ -39,8 +39,6 @@ fn main() -> crossterm::Result<()> {
 fn parse_args() -> Result<AppArgs, pico_args::Error> {
     let mut pargs = pico_args::Arguments::from_env();
 
-    // println!("Pargs: {:?}", pargs);
-
     if pargs.contains(["-h", "--help"]) {
         print!("{}", HELP);
         process::exit(0);
@@ -50,8 +48,6 @@ fn parse_args() -> Result<AppArgs, pico_args::Error> {
         // default screensaver is "matrix"
         screen_saver: pargs.free_from_str().map_or("matrix".into(), |arg| arg),
     };
-
-    println!("Args: {:?}", args);
 
     let remaining = pargs.finish();
     if !remaining.is_empty() {
