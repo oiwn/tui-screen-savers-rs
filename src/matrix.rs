@@ -5,6 +5,7 @@ use crossterm::{
 };
 use once_cell::sync::Lazy;
 use rand::{self, seq::SliceRandom, Rng};
+// use rayon::prelude::*;
 use std::{
     collections::HashMap,
     io::{Stdout, Write},
@@ -29,33 +30,34 @@ static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
     v
 });
 
-static INITIAL_WORMS: u16 = 60;
+static INITIAL_WORMS: u16 = 180;
 // static MAX_WORMS: u16 = 40;
+static MIN_LENGTH: u8 = 6;
+static MAX_LENGTH: u8 = 20;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct VerticalWorm {
-    chars: Vec<char>,
+    body: Vec<char>,
     fx: f32,
     fy: f32,
     max_length: u8,
-    // finish: bool,
+    finish: bool,
     speed: u8,
     rng: rand::prelude::ThreadRng,
 }
 
 impl VerticalWorm {
-    fn new(w: u16, _h: u16) -> Self {
+    fn new(w: u16, h: u16) -> Self {
         let mut rng = rand::thread_rng();
-        let mut chars: Vec<char> = vec![];
-        chars.push(CHARACTERS.choose(&mut rng).unwrap().clone());
+        let body: Vec<char> = vec![*CHARACTERS.choose(&mut rng).unwrap()];
 
         Self {
-            chars,
+            body,
             fx: rng.gen_range(0..w) as f32,
-            fy: 0.0,
-            max_length: rng.gen_range(4..10),
+            fy: rng.gen_range(0..h / 2) as f32,
+            max_length: rng.gen_range(MIN_LENGTH..=MAX_LENGTH),
             speed: rng.gen_range(2..20),
-            // finish: false,
+            finish: false,
             rng,
         }
     }
@@ -67,24 +69,64 @@ impl VerticalWorm {
     }
 
     fn reset(&mut self, w: u16, _h: u16) -> Result<()> {
-        self.chars
+        self.body.clear();
+        self.body
             .insert(0, CHARACTERS.choose(&mut self.rng).unwrap().clone());
-        self.chars.truncate(self.max_length as usize);
+        // self.body.truncate(self.max_length as usize);
         self.fy = 0.0;
-        self.fx = self.rng.gen_range(0..w) as f32;
+        self.fx = self.rng.gen_range(0..=w) as f32;
         self.speed = self.rng.gen_range(2..20);
+        self.finish = false;
         self.max_length = self.rng.gen_range(4..10);
         Ok(())
     }
 
-    fn update(&mut self, w: u16, h: u16, dt: Duration) -> Result<()> {
-        self.chars
-            .insert(0, CHARACTERS.choose(&mut self.rng).unwrap().clone());
-        self.chars.truncate(self.max_length as usize);
-        self.fy = self.fy + ((self.speed as f32 * dt.as_millis() as f32) / 1000.0);
+    fn grow(&mut self, head: u16) {
+        let delta: i16 = head as i16 - self.fy.round() as i16;
+        if delta > 0 {
+            for _ in 0..=delta {
+                self.body
+                    .insert(0, CHARACTERS.choose(&mut self.rng).unwrap().clone());
+            }
+            self.body.truncate(self.max_length as usize);
+        }
+    }
 
-        if self.fy.round() as u16 >= h {
+    fn update(&mut self, w: u16, h: u16, dt: Duration) -> Result<()> {
+        // there can be 3 cases:
+        // worm vector not yet fully come from top
+        // worm vector somewhere in the middle of the scren
+        // worm vector reach bottom and need to fade out
+
+        if (self.body.len() == 0) || (self.finish == true) {
             self.reset(w, h)?;
+        }
+
+        let fy = self.fy + (self.speed as f32 * dt.as_millis() as f32) / 1000.0;
+        let head = fy.round() as u16;
+        let tail = fy.round() as i16 - self.body.len() as i16;
+
+        if tail <= 0 {
+            // not fully come from top
+
+            self.grow(head);
+            self.fy = fy;
+            return Ok(());
+        }
+
+        if (head < h) && (tail > 0) {
+            // somewhere in the middle
+
+            self.grow(head);
+            self.fy = fy;
+            return Ok(());
+        }
+
+        if (head >= h) && (tail > 0) {
+            // come to bottom
+            self.finish = true;
+            // self.reset(w, h)?;
+            return Ok(());
         }
 
         Ok(())
@@ -111,21 +153,40 @@ impl Matrix {
         }
     }
 
+    fn pick_style(&self, pos: usize, ch: &char) -> style::PrintStyledContent<char> {
+        match pos {
+            0 => style::PrintStyledContent(ch.white().bold()),
+            1 => style::PrintStyledContent(ch.white()),
+            2..=4 => style::PrintStyledContent(ch.green()),
+            5..=7 => style::PrintStyledContent(ch.dark_green()),
+            8..=10 => style::PrintStyledContent(ch.dark_grey()),
+            _ => style::PrintStyledContent(ch.black()),
+        }
+    }
+
     pub fn draw(&self, stdout: &mut Stdout) -> Result<()> {
+        stdout.queue(terminal::Clear(terminal::ClearType::Purge))?;
         for worm in self.worms.iter() {
             let (x, y) = worm.to_points();
-            for (pos, char) in worm.chars.iter().enumerate() {
-                if (y as i16 - pos as i16) > 0 {
+            if worm.finish == true {
+                stdout
+                    .queue(cursor::MoveTo(x, y))?
+                    .queue(style::Print(' '))?;
+                return Ok(());
+            }
+            for (pos, ch) in worm.body.iter().enumerate() {
+                if (y as i16 - pos as i16) >= 0 {
                     stdout.queue(cursor::MoveTo(x, y - pos as u16))?;
+                    stdout.queue(self.pick_style(pos, ch))?;
 
-                    match pos {
-                        0 => stdout.queue(style::PrintStyledContent(char.white().bold()))?,
-                        1 => stdout.queue(style::PrintStyledContent(char.white()))?,
-                        2 => stdout.queue(style::PrintStyledContent(char.green()))?,
-                        3 => stdout.queue(style::PrintStyledContent(char.dark_green()))?,
-                        10..=20 => stdout.queue(style::PrintStyledContent(char.black()))?,
-                        _ => stdout.queue(style::PrintStyledContent(char.dark_grey()))?,
-                    };
+                    // match pos {
+                    //     0 => stdout.queue(style::PrintStyledContent(char.white().bold()))?,
+                    //     1 => stdout.queue(style::PrintStyledContent(char.white()))?,
+                    //     2..=4 => stdout.queue(style::PrintStyledContent(char.green()))?,
+                    //     5..=8 => stdout.queue(style::PrintStyledContent(char.dark_green()))?,
+                    //     8..=10 => stdout.queue(style::PrintStyledContent(char.dark_grey()))?,
+                    //     _ => stdout.queue(style::PrintStyledContent(char.black()))?,
+                    // };
                 }
             }
         }
@@ -133,6 +194,8 @@ impl Matrix {
     }
 
     pub fn update(&mut self) -> Result<()> {
+        // start updating/drawing from lower worms
+        self.worms.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
         for worm in self.worms.iter_mut() {
             worm.update(
                 self.screen_width,
@@ -144,7 +207,7 @@ impl Matrix {
     }
 
     pub fn process_input() -> Result<bool> {
-        if event::poll(Duration::from_millis(50))? {
+        if event::poll(Duration::from_millis(20))? {
             match event::read()? {
                 event::Event::Key(keyevent) => {
                     if keyevent
@@ -169,10 +232,11 @@ pub fn run_loop(stdout: &mut Stdout) -> Result<()> {
     let mut matrix = Matrix::new(width, height);
     // main loop
     while is_running {
+        stdout.queue(terminal::Clear(terminal::ClearType::All))?;
         is_running = Matrix::process_input()?;
         matrix.draw(stdout)?;
         stdout.flush()?;
-        // std::thread::sleep(Duration::from_millis(16));
+        // std::thread::sleep(Duration::from_millis(20));
         matrix.update()?;
     }
     Ok(())

@@ -1,5 +1,4 @@
 use crossterm::{self, cursor, execute, terminal};
-use pico_args;
 use std::{io, process};
 
 mod matrix;
