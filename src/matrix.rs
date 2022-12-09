@@ -35,8 +35,8 @@ static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
 });
 
 static INITIAL_WORMS: u16 = 100;
-static LENGTH_RANGE: (u8, u8) = (6, 20);
-static SPEED_RANGE: (u8, u8) = (2, 10);
+static LENGTH_RANGE: (u8, u8) = (10, 20);
+static SPEED_RANGE: (u8, u8) = (2, 8);
 
 #[derive(Clone, Debug)]
 enum VerticalWormStyle {
@@ -65,13 +65,11 @@ struct VerticalWorm {
     max_length: u8,
     finish: bool,
     speed: u8,
-    rng: rand::prelude::ThreadRng,
 }
 
 impl VerticalWorm {
-    fn new(w: u16, h: u16) -> Self {
-        let mut rng = rand::thread_rng();
-        let body: Vec<char> = vec![*CHARACTERS.choose(&mut rng).unwrap()];
+    fn new(w: u16, h: u16, rng: &mut rand::prelude::ThreadRng) -> Self {
+        let body: Vec<char> = vec![*CHARACTERS.choose(rng).unwrap()];
 
         Self {
             body,
@@ -82,7 +80,6 @@ impl VerticalWorm {
             max_length: rng.gen_range(LENGTH_RANGE.0..=LENGTH_RANGE.1),
             speed: rng.gen_range(SPEED_RANGE.0..SPEED_RANGE.1),
             finish: false,
-            rng,
         }
     }
 
@@ -92,38 +89,42 @@ impl VerticalWorm {
         (x, y)
     }
 
-    fn reset(&mut self, w: u16, _h: u16) -> Result<()> {
+    fn reset(&mut self, w: u16, _h: u16, rng: &mut rand::prelude::ThreadRng) -> Result<()> {
         self.body.clear();
-        self.body
-            .insert(0, CHARACTERS.choose(&mut self.rng).unwrap().clone());
+        self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
         // self.body.truncate(self.max_length as usize);
         self.fy = 0.0;
-        self.fx = self.rng.gen_range(0..=w) as f32;
-        self.speed = self.rng.gen_range(2..20);
+        self.fx = rng.gen_range(0..=w) as f32;
+        self.speed = rng.gen_range(2..20);
         self.finish = false;
-        self.max_length = self.rng.gen_range(4..10);
+        self.max_length = rng.gen_range(4..10);
         Ok(())
     }
 
-    fn grow(&mut self, head: u16) {
+    fn grow(&mut self, head: u16, rng: &mut rand::prelude::ThreadRng) {
         let delta: i16 = head as i16 - self.fy.round() as i16;
         if delta > 0 {
             for _ in 0..=delta {
-                self.body
-                    .insert(0, CHARACTERS.choose(&mut self.rng).unwrap().clone());
+                self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
             }
             self.body.truncate(self.max_length as usize);
         }
     }
 
-    fn update(&mut self, w: u16, h: u16, dt: Duration) -> Result<()> {
+    fn update(
+        &mut self,
+        w: u16,
+        h: u16,
+        dt: Duration,
+        rng: &mut rand::prelude::ThreadRng,
+    ) -> Result<()> {
         // there can be 3 cases:
         // worm vector not yet fully come from top
         // worm vector somewhere in the middle of the scren
         // worm vector reach bottom and need to fade out
 
         if (self.body.len() == 0) || (self.finish == true) {
-            self.reset(w, h)?;
+            self.reset(w, h, rng)?;
         }
 
         let fy = self.fy + (self.speed as f32 * dt.as_millis() as f32) / 1000.0;
@@ -136,7 +137,7 @@ impl VerticalWorm {
         if tail <= 0 {
             // not fully come from top
 
-            self.grow(head);
+            self.grow(head, rng);
             self.fy = fy;
             return Ok(());
         }
@@ -144,7 +145,7 @@ impl VerticalWorm {
         if (head < h) && (tail > 0) {
             // somewhere in the middle
 
-            self.grow(head);
+            self.grow(head, rng);
             self.fy = fy;
             return Ok(());
         }
@@ -165,18 +166,21 @@ pub struct Matrix {
     screen_width: u16,
     screen_height: u16,
     worms: Vec<VerticalWorm>,
+    rng: rand::prelude::ThreadRng,
 }
 
 impl Matrix {
     pub fn new(width: u16, heigth: u16) -> Self {
+        let mut rng = rand::thread_rng();
         let mut worms: Vec<VerticalWorm> = vec![];
-        for _ in 1..INITIAL_WORMS {
-            worms.push(VerticalWorm::new(width as u16, heigth as u16));
+        for _ in 1..=INITIAL_WORMS {
+            worms.push(VerticalWorm::new(width as u16, heigth as u16, &mut rng));
         }
         Self {
             screen_width: width,
             screen_height: heigth,
             worms,
+            rng,
         }
     }
 
@@ -216,7 +220,7 @@ impl Matrix {
     }
 
     pub fn draw(&self, stdout: &mut Stdout) -> Result<()> {
-        // stdout.queue(terminal::Clear(terminal::ClearType::Purge))?;
+        // stdout.queue(terminal::Clear(terminal::ClearType::All))?;
         for worm in self.worms.iter() {
             let (x, y) = worm.to_points();
             if y <= self.screen_height {
@@ -230,7 +234,7 @@ impl Matrix {
             // delete tail
             let drop_head: i16 = y as i16 - worm.body.len() as i16;
             if drop_head > worm.offset as i16 {
-                for yy in drop_head..drop_head - worm.offset as i16 {
+                for yy in drop_head..=(drop_head - worm.offset as i16) {
                     stdout.queue(cursor::MoveTo(x, yy as u16))?;
                     stdout.queue(style::PrintStyledContent(' '.black()))?;
                 }
@@ -247,6 +251,7 @@ impl Matrix {
                 self.screen_width,
                 self.screen_height,
                 Duration::from_millis(50),
+                &mut self.rng,
             )?;
         }
         Ok(())
@@ -281,7 +286,7 @@ pub fn run_loop(stdout: &mut Stdout) -> Result<()> {
         is_running = Matrix::process_input()?;
         matrix.draw(stdout)?;
         stdout.flush()?;
-        std::thread::sleep(Duration::from_millis(20));
+        // std::thread::sleep(Duration::from_millis(20));
         matrix.update()?;
     }
     Ok(())

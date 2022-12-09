@@ -1,0 +1,23 @@
+session_name: screen-savers-rs
+shell_command_before: "export RUST_LOG=info; clear"
+windows:
+  - window_name: code
+    focus: true
+    start-directory: ./
+    panes:
+      - shell_command:
+        - nvim
+  - window_name: cmd
+    start-directory: ./
+    panes:
+      - shell_command:
+        - clear
+  - window_name: srv
+    start-directory: ./
+    panes:
+      - shell_command:
+        - clear
+  - window_name: notes
+    panes:
+      - shell_command:
+        - emacs -nw notes.org
