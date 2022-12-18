@@ -34,7 +34,7 @@ static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
     v
 });
 
-static INITIAL_WORMS: u16 = 100;
+static INITIAL_WORMS: u16 = 30;
 static LENGTH_RANGE: (u8, u8) = (10, 20);
 static SPEED_RANGE: (u8, u8) = (2, 8);
 
@@ -166,20 +166,39 @@ pub struct Matrix {
     screen_width: u16,
     screen_height: u16,
     worms: Vec<VerticalWorm>,
+    buffer_prev: ndarray::Array2<u8>,
+    buffer_curr: ndarray::Array2<u8>,
     rng: rand::prelude::ThreadRng,
 }
 
 impl Matrix {
-    pub fn new(width: u16, heigth: u16) -> Self {
+    pub fn new(width: u16, height: u16) -> Self {
         let mut rng = rand::thread_rng();
         let mut worms: Vec<VerticalWorm> = vec![];
         for _ in 1..=INITIAL_WORMS {
-            worms.push(VerticalWorm::new(width as u16, heigth as u16, &mut rng));
+            worms.push(VerticalWorm::new(width as u16, height as u16, &mut rng));
         }
+        let buffer_prev: ndarray::Array2<u8> =
+            ndarray::Array::zeros((width as usize, height as usize));
+        let mut buffer_curr = buffer_prev.clone();
+
+        // fill current buffer
+        for worm in worms.iter() {
+            for pos in 0..worms.len() {
+                let x = worm.fy.round() as i16 - pos as i16;
+                if x >= 0 {
+                    let y = worm.fx.round() as u16;
+                    buffer_curr[[y as usize, x as usize]] = 1;
+                }
+            }
+        }
+
         Self {
             screen_width: width,
-            screen_height: heigth,
+            screen_height: height,
             worms,
+            buffer_prev,
+            buffer_curr,
             rng,
         }
     }
@@ -219,8 +238,19 @@ impl Matrix {
         worm_style
     }
 
-    pub fn draw(&self, stdout: &mut Stdout) -> Result<()> {
-        // stdout.queue(terminal::Clear(terminal::ClearType::All))?;
+    pub fn draw(&mut self, stdout: &mut Stdout) -> Result<()> {
+        // delete current buffer and copy it to previous
+        for (x, row) in self.buffer_curr.outer_iter().enumerate() {
+            for (y, _) in row.iter().enumerate() {
+                if self.buffer_curr[[x, y]] == 1 {
+                    stdout.queue(cursor::MoveTo(x as u16, y as u16))?;
+                    stdout.queue(style::PrintStyledContent(' '.black()))?;
+                }
+            }
+        }
+
+        self.buffer_curr.fill(0);
+
         for worm in self.worms.iter() {
             let (x, y) = worm.to_points();
             if y <= self.screen_height {
@@ -228,15 +258,8 @@ impl Matrix {
                     if (y as i16 - pos as i16) >= 0 {
                         stdout.queue(cursor::MoveTo(x, y - pos as u16))?;
                         stdout.queue(self.pick_style(&worm.vw_style, pos, ch))?;
+                        self.buffer_curr[[x as usize, (y - pos as u16) as usize]] = 1;
                     }
-                }
-            }
-            // delete tail
-            let drop_head: i16 = y as i16 - worm.body.len() as i16;
-            if drop_head > worm.offset as i16 {
-                for yy in drop_head..=(drop_head - worm.offset as i16) {
-                    stdout.queue(cursor::MoveTo(x, yy as u16))?;
-                    stdout.queue(style::PrintStyledContent(' '.black()))?;
                 }
             }
         }
@@ -281,12 +304,15 @@ pub fn run_loop(stdout: &mut Stdout) -> Result<()> {
     let mut is_running = true;
     let (width, height) = terminal::size()?;
     let mut matrix = Matrix::new(width, height);
+
     // main loop
+    stdout.queue(terminal::Clear(terminal::ClearType::All))?;
     while is_running {
         is_running = Matrix::process_input()?;
+
         matrix.draw(stdout)?;
         stdout.flush()?;
-        // std::thread::sleep(Duration::from_millis(20));
+        std::thread::sleep(Duration::from_millis(20));
         matrix.update()?;
     }
     Ok(())
