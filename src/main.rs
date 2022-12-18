@@ -13,6 +13,8 @@ struct AppArgs {
 }
 
 fn main() -> crossterm::Result<()> {
+    simple_logger::SimpleLogger::new().env().init().unwrap();
+
     let args = match parse_args() {
         Ok(v) => v,
         Err(e) => {
@@ -30,7 +32,8 @@ fn main() -> crossterm::Result<()> {
         _ => matrix::run_loop(&mut stdout)?,
     };
 
-    execute!(stdout, cursor::Show, terminal::LeaveAlternateScreen)?;
+    execute!(stdout, cursor::Show)?;
+    // execute!(stdout, cursor::Show, terminal::LeaveAlternateScreen)?;
     terminal::disable_raw_mode()?;
     Ok(())
 }

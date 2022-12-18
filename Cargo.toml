@@ -7,11 +7,13 @@ edition = "2021"
 
 [dependencies]
 crossterm = "0.25.0"
+log = "0.4.17"
 ndarray = { version = "0.15.6", features = ["rayon"] }
 once_cell = "1.16.0"
 pico-args = "0.5.0"
 rand = "0.8.5"
 rayon = "1.6.0"
+simple_logger = "4.0.0"
 
 [profile.release]
 strip = true
