@@ -25,7 +25,8 @@ fn main() -> crossterm::Result<()> {
     let mut stdout = io::stdout();
 
     terminal::enable_raw_mode()?;
-    execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide)?;
+    execute!(stdout, cursor::Hide)?;
+    // execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide)?;
 
     match args.screen_saver.as_str() {
         "matrix" => matrix::run_loop(&mut stdout)?,

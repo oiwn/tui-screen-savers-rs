@@ -26,7 +26,7 @@ static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
     v
 });
 
-static LENGTH_RANGE: (u8, u8) = (10, 20);
+static LENGTH_RANGE: (u8, u8) = (10, 30);
 static SPEED_RANGE: (u8, u8) = (2, 8);
 
 #[derive(Clone, Debug)]
@@ -141,7 +141,7 @@ impl VerticalWorm {
             return Ok(());
         }
 
-        if (head >= h) && (tail > 0) {
+        if head >= h {
             // come to bottom
             self.finish = true;
             // self.reset(w, h)?;
