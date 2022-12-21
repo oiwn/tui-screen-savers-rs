@@ -6,7 +6,7 @@ windows:
     start-directory: ./
     panes:
       - shell_command:
-        - nvim
+        - helix
   - window_name: cmd
     start-directory: ./
     panes:

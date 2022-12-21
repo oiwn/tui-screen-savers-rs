@@ -94,23 +94,14 @@ impl Matrix {
     }
 
     pub fn draw(&mut self, stdout: &mut Stdout) -> Result<()> {
-        // delete current buffer and copy it to previous
-        // for (x, row) in self.buffer_curr.outer_iter().enumerate() {
-        //     for (y, val) in row.iter().enumerate() {
-        //         // if self.buffer_curr[[x, y]] == 1 {
-        //         if *val == 1 as u8 {
-        //             stdout.queue(cursor::MoveTo(x as u16, y as u16))?;
-        //             stdout.queue(style::PrintStyledContent(' '.black()))?;
-        //         }
-        //     }
-        // }
-
+        // delete changes
         let diff = self.buffer_prev.clone() - self.buffer_curr.clone();
         for (x, row) in diff.outer_iter().enumerate() {
             for (y, val) in row.iter().enumerate() {
                 if *val == 1 as i8 {
                     stdout.queue(cursor::MoveTo(x as u16, y as u16))?;
-                    stdout.queue(style::PrintStyledContent(' '.black()))?;
+                    // stdout.queue(style::PrintStyledContent(' '.black()))?;
+                    stdout.queue(style::Print(' '))?;
                 }
             }
         }
@@ -118,14 +109,21 @@ impl Matrix {
         self.buffer_prev = self.buffer_curr.clone();
         self.buffer_curr.fill(0);
 
+        let mut buffer_collision: ndarray::Array2<u8> =
+            ndarray::Array::zeros((self.screen_width as usize, self.screen_height as usize));
+
+        self.worms.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
         for worm in self.worms.iter() {
             let (x, y) = worm.to_points();
-            if y <= self.screen_height {
+            if y < self.screen_height {
                 for (pos, ch) in worm.body.iter().enumerate() {
                     if (y as i16 - pos as i16) >= 0 {
-                        stdout.queue(cursor::MoveTo(x, y - pos as u16))?;
-                        stdout.queue(self.pick_style(&worm.vw_style, pos, ch))?;
-                        self.buffer_curr[[x as usize, (y - pos as u16) as usize]] = 1;
+                        if buffer_collision[[x as usize, (y - pos as u16) as usize]] != 1 {
+                            stdout.queue(cursor::MoveTo(x, y - pos as u16))?;
+                            stdout.queue(self.pick_style(&worm.vw_style, pos, ch))?;
+                            self.buffer_curr[[x as usize, (y - pos as u16) as usize]] = 1;
+                            buffer_collision[[x as usize, y as usize]] = 1;
+                        }
                     }
                 }
             }
@@ -135,7 +133,7 @@ impl Matrix {
 
     pub fn update(&mut self) -> Result<()> {
         // start updating/drawing from lower worms
-        self.worms.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
+        // self.worms.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
         for worm in self.worms.iter_mut() {
             worm.update(
                 self.screen_width,
