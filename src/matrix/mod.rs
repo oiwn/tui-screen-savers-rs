@@ -12,14 +12,13 @@ use std::{
 
 mod charworm;
 
-static INITIAL_WORMS: u16 = 120;
+static INITIAL_WORMS: usize = 120;
 
 pub struct Matrix {
     screen_width: u16,
     screen_height: u16,
     worms: Vec<VerticalWorm>,
-    buffer_prev: ndarray::Array2<i8>,
-    buffer_curr: ndarray::Array2<i8>,
+    map: ndarray::Array2<usize>,
     rng: rand::prelude::ThreadRng,
 }
 
@@ -28,22 +27,22 @@ impl Matrix {
     pub fn new(width: u16, height: u16) -> Self {
         let mut rng = rand::thread_rng();
         let mut worms: Vec<VerticalWorm> = vec![];
-        for _ in 1..=INITIAL_WORMS {
-            worms.push(VerticalWorm::new(width, height, &mut rng));
+        for worm_id in 1..=INITIAL_WORMS {
+            worms.push(VerticalWorm::new(width, height, worm_id, &mut rng));
         }
-        let buffer_prev: ndarray::Array2<i8> =
+
+        let mut map: ndarray::Array2<usize> =
             ndarray::Array::zeros((width as usize, height as usize));
-        let mut buffer_curr = buffer_prev.clone();
 
         // fill current buffer
+        // worm with lower y coordinate have priority
+        worms.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
         for worm in worms.iter() {
+            let (x, y) = worm.to_points();
             for pos in 0..worms.len() {
-                let y = worm.fy.round() as i16 - pos as i16;
-                if y > 0 {
-                    let x = worm.fx.round() as u16;
-                    if y < height as i16 {
-                        buffer_curr[[x as usize, y as usize]] = 1;
-                    }
+                let yy = y as i16 - pos as i16;
+                if yy >= 0 {
+                    map[[x as usize, yy as usize]] = worm.worm_id;
                 }
             }
         }
@@ -52,8 +51,7 @@ impl Matrix {
             screen_width: width,
             screen_height: height,
             worms,
-            buffer_prev,
-            buffer_curr,
+            map,
             rng,
         }
     }
@@ -94,44 +92,33 @@ impl Matrix {
     }
 
     pub fn draw(&mut self, stdout: &mut Stdout) -> Result<()> {
-        // delete changes
-        let diff = self.buffer_prev.clone() - self.buffer_curr.clone();
-        for (x, row) in diff.outer_iter().enumerate() {
+        // queue all space without worm to delete
+        for (x, row) in self.map.outer_iter().enumerate() {
             for (y, val) in row.iter().enumerate() {
-                if *val == 1 as i8 {
+                if *val == 0 {
                     stdout.queue(cursor::MoveTo(x as u16, y as u16))?;
-                    // stdout.queue(style::PrintStyledContent(' '.black()))?;
                     stdout.queue(style::Print(' '))?;
                 }
             }
         }
-
-        self.buffer_prev = self.buffer_curr.clone();
-        self.buffer_curr.fill(0);
-
-        let mut buffer_collision: ndarray::Array2<u8> = ndarray::Array::zeros((
-            self.screen_width as usize,
-            self.screen_height as usize,
-        ));
 
         self.worms.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
         for worm in self.worms.iter() {
             let (x, y) = worm.to_points();
             if y < self.screen_height {
                 for (pos, ch) in worm.body.iter().enumerate() {
-                    if (y as i16 - pos as i16) >= 0 {
-                        if buffer_collision[[x as usize, (y - pos as u16) as usize]]
-                            != 1
+                    let yy = y as i16 - pos as i16;
+                    if yy >= 0 {
+                        if self.map[[x as usize, (y - pos as u16) as usize]]
+                            == worm.worm_id
                         {
-                            stdout.queue(cursor::MoveTo(x, y - pos as u16))?;
+                            stdout.queue(cursor::MoveTo(x, yy as u16))?;
                             stdout.queue(self.pick_style(
                                 &worm.vw_style,
                                 pos,
                                 ch,
                             ))?;
-                            self.buffer_curr
-                                [[x as usize, (y - pos as u16) as usize]] = 1;
-                            buffer_collision[[x as usize, y as usize]] = 1;
+                            // self.map[[x as usize, yy as usize]] = worm.worm_id;
                         }
                     }
                 }
@@ -143,14 +130,30 @@ impl Matrix {
     pub fn update(&mut self) -> Result<()> {
         // start updating/drawing from lower worms
         // self.worms.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
+        // self.worms.reverse();
         for worm in self.worms.iter_mut() {
             worm.update(
                 self.screen_width,
                 self.screen_height,
                 Duration::from_millis(50),
                 &mut self.rng,
-            )?;
+            );
         }
+
+        // fill current buffer
+        // worm with lower y coordinate have priority
+        self.map.fill(0);
+        self.worms.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
+        for worm in self.worms.iter() {
+            let (x, y) = worm.to_points();
+            for pos in 0..self.worms.len() {
+                let yy = y as i16 - pos as i16;
+                if yy >= 0 {
+                    self.map[[x as usize, yy as usize]] = worm.worm_id;
+                }
+            }
+        }
+
         Ok(())
     }
 
