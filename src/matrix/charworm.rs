@@ -18,6 +18,7 @@ static CHARACTERS_MAP: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
     m
 });
 
+/// Characters used to form kinda-canonical matrix effect
 static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
     let mut v = Vec::new();
     for (_, chars) in CHARACTERS_MAP.iter() {
@@ -26,8 +27,8 @@ static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
     v
 });
 
-static LENGTH_RANGE: (u8, u8) = (10, 30);
-static SPEED_RANGE: (u8, u8) = (2, 8);
+static MIN_WORM_LENGTH: u16 = 10;
+static SPEED_RANGE: (u16, u16) = (2, 8);
 
 #[derive(Clone, Debug)]
 pub enum VerticalWormStyle {
@@ -37,6 +38,7 @@ pub enum VerticalWormStyle {
 }
 
 impl Distribution<VerticalWormStyle> for Standard {
+    /// Choose from range
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> VerticalWormStyle {
         match rng.gen_range(0..=2) {
             0 => VerticalWormStyle::Front,
@@ -52,14 +54,14 @@ pub struct VerticalWorm {
     pub vw_style: VerticalWormStyle,
     pub fx: f32,
     pub fy: f32,
-    pub offset: u16,
-    pub max_length: u8,
+    pub max_length: u16,
     pub finish: bool,
-    pub speed: u8,
+    pub speed: u16,
 }
 
 impl VerticalWorm {
     pub fn new(w: u16, h: u16, rng: &mut rand::prelude::ThreadRng) -> Self {
+        // pick random first character
         let body: Vec<char> = vec![*CHARACTERS.choose(rng).unwrap()];
 
         Self {
@@ -67,9 +69,8 @@ impl VerticalWorm {
             vw_style: rand::random(),
             fx: rng.gen_range(0..w) as f32,
             fy: rng.gen_range(0..h / 2) as f32,
-            offset: 0,
-            max_length: rng.gen_range(LENGTH_RANGE.0..=LENGTH_RANGE.1),
-            speed: rng.gen_range(SPEED_RANGE.0..SPEED_RANGE.1),
+            max_length: rng.gen_range(MIN_WORM_LENGTH..=(h / 2)),
+            speed: rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1),
             finish: false,
         }
     }
@@ -80,18 +81,23 @@ impl VerticalWorm {
         (x, y)
     }
 
-    fn reset(&mut self, w: u16, _h: u16, rng: &mut rand::prelude::ThreadRng) -> Result<()> {
+    fn reset(
+        &mut self,
+        w: u16,
+        h: u16,
+        rng: &mut rand::prelude::ThreadRng,
+    ) -> Result<()> {
         self.body.clear();
         self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
-        // self.body.truncate(self.max_length as usize);
         self.fy = 0.0;
-        self.fx = rng.gen_range(0..=w) as f32;
-        self.speed = rng.gen_range(2..20);
+        self.fx = rng.gen_range(0..w) as f32;
+        self.speed = rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1);
         self.finish = false;
-        self.max_length = rng.gen_range(4..10);
+        self.max_length = rng.gen_range(MIN_WORM_LENGTH..=(h / 2));
         Ok(())
     }
 
+    /// Growup matrix worm characters array
     fn grow(&mut self, head: u16, rng: &mut rand::prelude::ThreadRng) {
         let delta: i16 = head as i16 - self.fy.round() as i16;
         if delta > 0 {
@@ -118,16 +124,15 @@ impl VerticalWorm {
             self.reset(w, h, rng)?;
         }
 
+        // new fy coordinate
         let fy = self.fy + (self.speed as f32 * dt.as_millis() as f32) / 1000.0;
+
+        // calculate head and tail y coordinate
         let head = fy.round() as u16;
         let tail = fy.round() as i16 - self.body.len() as i16;
 
-        // store previous tail to cleanup
-        self.offset = head as u16 - self.fy.round() as u16;
-
         if tail <= 0 {
             // not fully come from top
-
             self.grow(head, rng);
             self.fy = fy;
             return Ok(());
@@ -135,7 +140,6 @@ impl VerticalWorm {
 
         if (head < h) && (tail > 0) {
             // somewhere in the middle
-
             self.grow(head, rng);
             self.fy = fy;
             return Ok(());
@@ -149,5 +153,16 @@ impl VerticalWorm {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create_new() {
+        let mut rng = rand::thread_rng();
+        let _new_worm = VerticalWorm::new(100, 100, &mut rng);
     }
 }

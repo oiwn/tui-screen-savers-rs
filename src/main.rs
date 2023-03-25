@@ -4,8 +4,7 @@ use std::{io, process};
 mod matrix;
 
 const HELP: &str = "\
-Terminal screensavers
-";
+Terminal screensavers";
 
 #[derive(Debug)]
 struct AppArgs {
