@@ -3,7 +3,19 @@
 * Features
 ** DONE Slowly increasing amount of "worms"
 ** make worms fade away
-** somehow need to slower rotation of worms characters
-** move "map" (with position of worms with worm_id) into separate module
+** DONE try color gradient
+** DONE better gradient (from shades of green)
+** TODO even better gradient (2 steps from white to dark gray)
+** TODO store options as MatrixOptions
+** DONE somehow need to slower rotation of worms characters
+** DONE different first character rotation for worms
+** TODO move "map" (with position of worms with worm_id) into separate module
 ** DONE Add speed optimization for release version
+
+* After Features
+** need tests
 ** need benchmarks
+
+* Optimizations
+** update crossterm
+** SPEED_RANGE as interval type

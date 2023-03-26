@@ -13,8 +13,55 @@ use std::{
 
 mod charworm;
 
-static INITIAL_WORMS: usize = 100;
+static INITIAL_WORMS: usize = 80;
 static MAX_WORMS: usize = 300;
+
+fn lerp(a: u8, b: u8, t: f32) -> u8 {
+    (a as f32 * (1.0 - t) + b as f32 * t).round() as u8
+}
+
+struct Color {
+    r: u8,
+    g: u8,
+    b: u8,
+}
+
+fn two_step_color_gradient(length: usize) -> Vec<Color> {
+    let start_color = Color {
+        r: 255,
+        g: 255,
+        b: 255,
+    };
+    let middle_color = Color { r: 0, g: 255, b: 0 };
+    let end_color = Color {
+        r: 10,
+        g: 10,
+        b: 10,
+    };
+
+    let half_length = length / 2;
+
+    let mut gradient = vec![];
+    for i in 1..=length {
+        let (r, g, b) = if i <= half_length {
+            let t = i as f32 / half_length as f32;
+            (
+                lerp(start_color.r, middle_color.r, t),
+                lerp(start_color.g, middle_color.g, t),
+                lerp(start_color.b, middle_color.b, t),
+            )
+        } else {
+            let t = (i - half_length) as f32 / half_length as f32;
+            (
+                lerp(middle_color.r, end_color.r, t),
+                lerp(middle_color.g, end_color.g, t),
+                lerp(middle_color.b, end_color.b, t),
+            )
+        };
+        gradient.push(Color { r, g, b });
+    }
+    gradient
+}
 
 pub struct Matrix {
     screen_width: u16,
@@ -64,6 +111,7 @@ impl Matrix {
         pos: usize,
         ch: &char,
     ) -> style::PrintStyledContent<char> {
+        // let gradient = two_step_color_gradient(10);
         let worm_style = match vw_style {
             VerticalWormStyle::Front => match pos {
                 0 => style::PrintStyledContent(ch.white().bold()),
@@ -85,6 +133,21 @@ impl Matrix {
                 1..=3 => style::PrintStyledContent(ch.dark_green()),
                 4..=5 => style::PrintStyledContent(ch.grey()),
                 _ => style::PrintStyledContent(ch.dark_grey()),
+            },
+            VerticalWormStyle::Fading => match pos {
+                0..=4 => style::PrintStyledContent(ch.grey()),
+                _ => style::PrintStyledContent(ch.dark_grey()),
+            },
+            VerticalWormStyle::Gradient => match pos {
+                0 => style::PrintStyledContent(ch.white().bold()),
+                _ => {
+                    let color = style::Color::Rgb {
+                        r: 0,
+                        g: 255 - (pos as u16 * 12).clamp(0, 255) as u8,
+                        b: 0,
+                    };
+                    style::PrintStyledContent(ch.with(color))
+                }
             },
         };
         worm_style
@@ -134,7 +197,7 @@ impl Matrix {
             return;
         };
         let mut rng = rand::thread_rng();
-        if rng.gen_range(0.0..=1.0) <= 0.1 {
+        if rng.gen_range(0.0..=1.0) <= 0.3 {
             self.worms.push(VerticalWorm::new(
                 self.screen_width,
                 self.screen_height,

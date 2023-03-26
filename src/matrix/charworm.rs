@@ -26,14 +26,16 @@ static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
     v
 });
 
-static MIN_WORM_LENGTH: u16 = 2;
-static SPEED_RANGE: (u16, u16) = (2, 12);
+static MIN_WORM_LENGTH: u16 = 6;
+static SPEED_RANGE: (u16, u16) = (2, 20);
 
 #[derive(Clone, Debug)]
 pub enum VerticalWormStyle {
     Front,
     Middle,
     Back,
+    Fading,
+    Gradient,
 }
 
 #[derive(Debug)]
@@ -51,10 +53,12 @@ pub struct VerticalWorm {
 impl Distribution<VerticalWormStyle> for Standard {
     /// Choose from range
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> VerticalWormStyle {
-        match rng.gen_range(0..=2) {
+        match rng.gen_range(0..=5) {
             0 => VerticalWormStyle::Front,
             1 => VerticalWormStyle::Middle,
-            _ => VerticalWormStyle::Back,
+            2 => VerticalWormStyle::Back,
+            3 => VerticalWormStyle::Fading,
+            _ => VerticalWormStyle::Gradient,
         }
     }
 }
@@ -75,7 +79,7 @@ impl VerticalWorm {
             body,
             vw_style: rand::random(),
             fx: rng.gen_range(0..w) as f32,
-            fy: rng.gen_range(0..h - 1) as f32,
+            fy: rng.gen_range(0..h / 4) as f32,
             max_length: rng.gen_range(MIN_WORM_LENGTH..=(h / 2)),
             speed: rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1),
             finish: false,
@@ -99,9 +103,18 @@ impl VerticalWorm {
     }
 
     /// Grow up matrix worm characters array
-    fn grow(&mut self, _head: u16, rng: &mut rand::prelude::ThreadRng) {
-        // let delta: i16 = head as i16 - self.fy.round() as i16;
-        self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
+    fn grow(&mut self, head: u16, rng: &mut rand::prelude::ThreadRng) {
+        let _ = match self.speed {
+            8..=20 => self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone()),
+            _ => {
+                // if position not changed, do not change first character
+                let delta: i16 = head as i16 - self.fy.round() as i16;
+                if delta > 0 {
+                    self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
+                }
+            }
+        };
+
         if self.body.len() >= self.max_length as usize {
             self.body.truncate(self.max_length as usize);
         }
@@ -119,7 +132,7 @@ impl VerticalWorm {
         // worm vector somewhere in the middle of the scren
         // worm vector reach bottom and need to fade out
 
-        if (self.body.len() == 0) || (self.finish == true) {
+        if self.body.len() == 0 {
             self.reset(w, h, rng);
         }
 
@@ -147,7 +160,7 @@ impl VerticalWorm {
         if head >= h {
             // come to bottom
             self.finish = true;
-            /*
+            self.vw_style = VerticalWormStyle::Back;
             // truncate vector so head will remain the same but cut the tail
             let new_body_len = self.body.len() as i16 - 1;
             if new_body_len >= 1 {
@@ -157,8 +170,7 @@ impl VerticalWorm {
             } else {
                 self.reset(w, h, rng);
             }
-            */
-            self.reset(w, h, rng);
+            // self.reset(w, h, rng);
         }
     }
 }
