@@ -11,7 +11,7 @@ static CHARACTERS_MAP: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
     let mut m = HashMap::new();
     m.insert("digits", "012345789");
     m.insert("punctuation", r#":・."=*+-<>"#);
-    // m.insert("kanji", "日");
+    // m.insert("kanji", "日"); // Somehow it causing blinks
     m.insert("katakana", "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ");
     m.insert("other", "¦çﾘｸ");
     m
@@ -26,8 +26,8 @@ static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
     v
 });
 
-static MIN_WORM_LENGTH: u16 = 10;
-static SPEED_RANGE: (u16, u16) = (2, 8);
+static MIN_WORM_LENGTH: u16 = 2;
+static SPEED_RANGE: (u16, u16) = (2, 12);
 
 #[derive(Clone, Debug)]
 pub enum VerticalWormStyle {
@@ -45,7 +45,6 @@ pub struct VerticalWorm {
     pub fy: f32,
     pub max_length: u16,
     pub finish: bool,
-    fade_counter: u16,
     pub speed: u16,
 }
 
@@ -60,6 +59,7 @@ impl Distribution<VerticalWormStyle> for Standard {
     }
 }
 
+/// Set of operations to make worm displyaing and moving
 impl VerticalWorm {
     pub fn new(
         w: u16,
@@ -75,10 +75,9 @@ impl VerticalWorm {
             body,
             vw_style: rand::random(),
             fx: rng.gen_range(0..w) as f32,
-            fy: rng.gen_range(0..h / 2) as f32,
+            fy: rng.gen_range(0..h - 1) as f32,
             max_length: rng.gen_range(MIN_WORM_LENGTH..=(h / 2)),
             speed: rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1),
-            fade_counter: 0,
             finish: false,
         }
     }
@@ -95,18 +94,15 @@ impl VerticalWorm {
         self.fy = 0.0;
         self.fx = rng.gen_range(0..w) as f32;
         self.speed = rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1);
-        self.fade_counter = 0;
         self.finish = false;
         self.max_length = rng.gen_range(MIN_WORM_LENGTH..=(h / 2));
     }
 
-    /// Growup matrix worm characters array
-    fn grow(&mut self, head: u16, rng: &mut rand::prelude::ThreadRng) {
-        let delta: i16 = head as i16 - self.fy.round() as i16;
-        if delta > 0 {
-            for _ in 0..=delta {
-                self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
-            }
+    /// Grow up matrix worm characters array
+    fn grow(&mut self, _head: u16, rng: &mut rand::prelude::ThreadRng) {
+        // let delta: i16 = head as i16 - self.fy.round() as i16;
+        self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
+        if self.body.len() >= self.max_length as usize {
             self.body.truncate(self.max_length as usize);
         }
     }
@@ -151,9 +147,18 @@ impl VerticalWorm {
         if head >= h {
             // come to bottom
             self.finish = true;
-            self.fade_counter += 1;
-            // self.body.truncate(gcc)
-            // self.reset(w, h)?;
+            /*
+            // truncate vector so head will remain the same but cut the tail
+            let new_body_len = self.body.len() as i16 - 1;
+            if new_body_len >= 1 {
+                self.max_length -= 1;
+                self.body.truncate(new_body_len as usize);
+                self.fy = (h - 1) as f32;
+            } else {
+                self.reset(w, h, rng);
+            }
+            */
+            self.reset(w, h, rng);
         }
     }
 }

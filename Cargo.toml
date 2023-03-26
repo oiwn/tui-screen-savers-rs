@@ -15,9 +15,17 @@ rand = "0.8.5"
 rayon = "1.6.0"
 simple_logger = "4.0.0"
 
+# old optimization
+# [profile.release]
+# strip = true
+# opt-level = "z"
+# lto = true
+# codegen-units = 1
+# panic = "abort"
+
 [profile.release]
-strip = true
-opt-level = "z"
-lto = true
+opt-level = 3
 codegen-units = 1
+lto = "fat"
 panic = "abort"
+

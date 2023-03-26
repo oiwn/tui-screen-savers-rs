@@ -5,6 +5,7 @@ use crossterm::{
     terminal, QueueableCommand, Result,
 };
 use rand;
+use rand::Rng;
 use std::{
     io::{Stdout, Write},
     time::Duration,
@@ -12,7 +13,8 @@ use std::{
 
 mod charworm;
 
-static INITIAL_WORMS: usize = 120;
+static INITIAL_WORMS: usize = 100;
+static MAX_WORMS: usize = 300;
 
 pub struct Matrix {
     screen_width: u16,
@@ -69,26 +71,24 @@ impl Matrix {
                 2..=4 => style::PrintStyledContent(ch.green()),
                 5..=7 => style::PrintStyledContent(ch.dark_green()),
                 8..=12 => style::PrintStyledContent(ch.grey()),
-                13..=20 => style::PrintStyledContent(ch.dark_grey()),
-                _ => style::PrintStyledContent(ch.black()),
+                _ => style::PrintStyledContent(ch.dark_grey()),
             },
             VerticalWormStyle::Middle => match pos {
                 0 => style::PrintStyledContent(ch.white()),
                 1..=3 => style::PrintStyledContent(ch.green()),
                 4..=5 => style::PrintStyledContent(ch.dark_green()),
                 6..=10 => style::PrintStyledContent(ch.grey()),
-                11..=20 => style::PrintStyledContent(ch.dark_grey()),
-                _ => style::PrintStyledContent(ch.black()),
+                _ => style::PrintStyledContent(ch.dark_grey()),
             },
             VerticalWormStyle::Back => match pos {
                 0 => style::PrintStyledContent(ch.green()),
                 1..=3 => style::PrintStyledContent(ch.dark_green()),
                 4..=5 => style::PrintStyledContent(ch.grey()),
-                6..=20 => style::PrintStyledContent(ch.dark_grey()),
-                _ => style::PrintStyledContent(ch.black()),
+                _ => style::PrintStyledContent(ch.dark_grey()),
             },
         };
         worm_style
+        // style::PrintStyledContent(ch.green())
     }
 
     pub fn draw(&mut self, stdout: &mut Stdout) -> Result<()> {
@@ -116,6 +116,7 @@ impl Matrix {
                             stdout.queue(self.pick_style(
                                 &worm.vw_style,
                                 pos,
+                                // &worm.worm_id.to_string().chars().next().unwrap(),
                                 ch,
                             ))?;
                             // self.map[[x as usize, yy as usize]] = worm.worm_id;
@@ -125,6 +126,22 @@ impl Matrix {
             }
         }
         Ok(())
+    }
+
+    /// Add one more worm with decent chance
+    pub fn add_one(&mut self) {
+        if self.worms.len() >= MAX_WORMS {
+            return;
+        };
+        let mut rng = rand::thread_rng();
+        if rng.gen_range(0.0..=1.0) <= 0.1 {
+            self.worms.push(VerticalWorm::new(
+                self.screen_width,
+                self.screen_height,
+                self.worms.len() + 1,
+                &mut rng,
+            ));
+        }
     }
 
     pub fn update(&mut self) -> Result<()> {
@@ -140,13 +157,15 @@ impl Matrix {
             );
         }
 
+        self.add_one();
+
         // fill current buffer
         // worm with lower y coordinate have priority
         self.map.fill(0);
         self.worms.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
         for worm in self.worms.iter() {
             let (x, y) = worm.to_points();
-            for pos in 0..self.worms.len() {
+            for pos in 0..worm.body.len() {
                 let yy = y as i16 - pos as i16;
                 if yy >= 0 {
                     self.map[[x as usize, yy as usize]] = worm.worm_id;
@@ -158,7 +177,7 @@ impl Matrix {
     }
 
     pub fn process_input() -> Result<bool> {
-        if event::poll(Duration::from_millis(30))? {
+        if event::poll(Duration::from_millis(10))? {
             match event::read()? {
                 event::Event::Key(keyevent) => {
                     if keyevent
@@ -186,7 +205,7 @@ pub fn run_loop(stdout: &mut Stdout) -> Result<()> {
     stdout.queue(terminal::Clear(terminal::ClearType::All))?;
     while is_running {
         is_running = Matrix::process_input()?;
-        std::thread::sleep(Duration::from_millis(20));
+        std::thread::sleep(Duration::from_millis(10));
 
         matrix.draw(stdout)?;
         stdout.flush()?;
