@@ -1,4 +1,3 @@
-use crossterm::Result;
 use once_cell::sync::Lazy;
 use rand::{
     self,
@@ -12,7 +11,7 @@ static CHARACTERS_MAP: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
     let mut m = HashMap::new();
     m.insert("digits", "012345789");
     m.insert("punctuation", r#":・."=*+-<>"#);
-    m.insert("kanji", "日");
+    // m.insert("kanji", "日"); // Somehow it causing blinks
     m.insert("katakana", "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ");
     m.insert("other", "¦çﾘｸ");
     m
@@ -27,29 +26,21 @@ static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
     v
 });
 
-static MIN_WORM_LENGTH: u16 = 10;
-static SPEED_RANGE: (u16, u16) = (2, 8);
+static MIN_WORM_LENGTH: u16 = 6;
+static SPEED_RANGE: (u16, u16) = (2, 20);
 
 #[derive(Clone, Debug)]
 pub enum VerticalWormStyle {
     Front,
     Middle,
     Back,
+    Fading,
+    Gradient,
 }
 
-impl Distribution<VerticalWormStyle> for Standard {
-    /// Choose from range
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> VerticalWormStyle {
-        match rng.gen_range(0..=2) {
-            0 => VerticalWormStyle::Front,
-            1 => VerticalWormStyle::Middle,
-            _ => VerticalWormStyle::Back,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct VerticalWorm {
+    pub worm_id: usize,
     pub body: Vec<char>,
     pub vw_style: VerticalWormStyle,
     pub fx: f32,
@@ -59,16 +50,36 @@ pub struct VerticalWorm {
     pub speed: u16,
 }
 
+impl Distribution<VerticalWormStyle> for Standard {
+    /// Choose from range
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> VerticalWormStyle {
+        match rng.gen_range(0..=5) {
+            0 => VerticalWormStyle::Front,
+            1 => VerticalWormStyle::Middle,
+            2 => VerticalWormStyle::Back,
+            3 => VerticalWormStyle::Fading,
+            _ => VerticalWormStyle::Gradient,
+        }
+    }
+}
+
+/// Set of operations to make worm displyaing and moving
 impl VerticalWorm {
-    pub fn new(w: u16, h: u16, rng: &mut rand::prelude::ThreadRng) -> Self {
+    pub fn new(
+        w: u16,
+        h: u16,
+        worm_id: usize,
+        rng: &mut rand::prelude::ThreadRng,
+    ) -> Self {
         // pick random first character
         let body: Vec<char> = vec![*CHARACTERS.choose(rng).unwrap()];
 
         Self {
+            worm_id,
             body,
             vw_style: rand::random(),
             fx: rng.gen_range(0..w) as f32,
-            fy: rng.gen_range(0..h / 2) as f32,
+            fy: rng.gen_range(0..h / 4) as f32,
             max_length: rng.gen_range(MIN_WORM_LENGTH..=(h / 2)),
             speed: rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1),
             finish: false,
@@ -81,12 +92,7 @@ impl VerticalWorm {
         (x, y)
     }
 
-    fn reset(
-        &mut self,
-        w: u16,
-        h: u16,
-        rng: &mut rand::prelude::ThreadRng,
-    ) -> Result<()> {
+    fn reset(&mut self, w: u16, h: u16, rng: &mut rand::prelude::ThreadRng) {
         self.body.clear();
         self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
         self.fy = 0.0;
@@ -94,16 +100,22 @@ impl VerticalWorm {
         self.speed = rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1);
         self.finish = false;
         self.max_length = rng.gen_range(MIN_WORM_LENGTH..=(h / 2));
-        Ok(())
     }
 
-    /// Growup matrix worm characters array
+    /// Grow up matrix worm characters array
     fn grow(&mut self, head: u16, rng: &mut rand::prelude::ThreadRng) {
-        let delta: i16 = head as i16 - self.fy.round() as i16;
-        if delta > 0 {
-            for _ in 0..=delta {
-                self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
+        let _ = match self.speed {
+            8..=20 => self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone()),
+            _ => {
+                // if position not changed, do not change first character
+                let delta: i16 = head as i16 - self.fy.round() as i16;
+                if delta > 0 {
+                    self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
+                }
             }
+        };
+
+        if self.body.len() >= self.max_length as usize {
             self.body.truncate(self.max_length as usize);
         }
     }
@@ -114,14 +126,14 @@ impl VerticalWorm {
         h: u16,
         dt: Duration,
         rng: &mut rand::prelude::ThreadRng,
-    ) -> Result<()> {
+    ) {
         // there can be 3 cases:
         // worm vector not yet fully come from top
         // worm vector somewhere in the middle of the scren
         // worm vector reach bottom and need to fade out
 
-        if (self.body.len() == 0) || (self.finish == true) {
-            self.reset(w, h, rng)?;
+        if self.body.len() == 0 {
+            self.reset(w, h, rng);
         }
 
         // new fy coordinate
@@ -135,24 +147,31 @@ impl VerticalWorm {
             // not fully come from top
             self.grow(head, rng);
             self.fy = fy;
-            return Ok(());
+            return;
         }
 
         if (head < h) && (tail > 0) {
             // somewhere in the middle
             self.grow(head, rng);
             self.fy = fy;
-            return Ok(());
+            return;
         }
 
         if head >= h {
             // come to bottom
             self.finish = true;
-            // self.reset(w, h)?;
-            return Ok(());
+            self.vw_style = VerticalWormStyle::Back;
+            // truncate vector so head will remain the same but cut the tail
+            let new_body_len = self.body.len() as i16 - 1;
+            if new_body_len >= 1 {
+                self.max_length -= 1;
+                self.body.truncate(new_body_len as usize);
+                self.fy = (h - 1) as f32;
+            } else {
+                self.reset(w, h, rng);
+            }
+            // self.reset(w, h, rng);
         }
-
-        Ok(())
     }
 }
 
@@ -163,6 +182,6 @@ mod tests {
     #[test]
     fn create_new() {
         let mut rng = rand::thread_rng();
-        let _new_worm = VerticalWorm::new(100, 100, &mut rng);
+        let _new_worm = VerticalWorm::new(100, 100, 1 as usize, &mut rng);
     }
 }
