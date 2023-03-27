@@ -26,10 +26,9 @@ static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
     v
 });
 
-static MIN_WORM_LENGTH: u16 = 6;
+static MIN_WORM_LENGTH: u16 = 10;
 static SPEED_RANGE: (u16, u16) = (2, 20);
 
-#[derive(Clone, Debug)]
 pub enum VerticalWormStyle {
     Front,
     Middle,
@@ -38,7 +37,6 @@ pub enum VerticalWormStyle {
     Gradient,
 }
 
-#[derive(Debug)]
 pub struct VerticalWorm {
     pub worm_id: usize,
     pub body: Vec<char>,
@@ -53,7 +51,7 @@ pub struct VerticalWorm {
 impl Distribution<VerticalWormStyle> for Standard {
     /// Choose from range
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> VerticalWormStyle {
-        match rng.gen_range(0..=5) {
+        match rng.gen_range(0..=6) {
             0 => VerticalWormStyle::Front,
             1 => VerticalWormStyle::Middle,
             2 => VerticalWormStyle::Back,
@@ -65,6 +63,7 @@ impl Distribution<VerticalWormStyle> for Standard {
 
 /// Set of operations to make worm displyaing and moving
 impl VerticalWorm {
+    /// Create new worm with sane random defaults
     pub fn new(
         w: u16,
         h: u16,
@@ -73,25 +72,49 @@ impl VerticalWorm {
     ) -> Self {
         // pick random first character
         let body: Vec<char> = vec![*CHARACTERS.choose(rng).unwrap()];
+        let vw_style: VerticalWormStyle = rand::random();
+        let fx: f32 = rng.gen_range(0..w) as f32;
+        let fy: f32 = rng.gen_range(0..h / 2) as f32;
+        let max_length: u16 = rng.gen_range(MIN_WORM_LENGTH..=(h / 2));
+        let speed: u16 = rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1);
+        let finish = false;
 
+        Self::from_values(
+            worm_id, body, vw_style, fx, fy, max_length, speed, finish,
+        )
+    }
+
+    /// Create new worm from values
+    pub fn from_values(
+        worm_id: usize,
+        body: Vec<char>,
+        vw_style: VerticalWormStyle,
+        fx: f32,
+        fy: f32,
+        max_length: u16,
+        speed: u16,
+        finish: bool,
+    ) -> Self {
         Self {
             worm_id,
             body,
-            vw_style: rand::random(),
-            fx: rng.gen_range(0..w) as f32,
-            fy: rng.gen_range(0..h / 4) as f32,
-            max_length: rng.gen_range(MIN_WORM_LENGTH..=(h / 2)),
-            speed: rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1),
-            finish: false,
+            vw_style,
+            fx,
+            fy,
+            max_length,
+            speed,
+            finish,
         }
     }
 
+    /// Convert float points into screen coordinates
     pub fn to_points(&self) -> (u16, u16) {
         let x = self.fx.round() as u16;
         let y = self.fy.round() as u16;
         (x, y)
     }
 
+    /// Reset worm to the sane defaults
     fn reset(&mut self, w: u16, h: u16, rng: &mut rand::prelude::ThreadRng) {
         self.body.clear();
         self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
@@ -102,12 +125,17 @@ impl VerticalWorm {
         self.max_length = rng.gen_range(MIN_WORM_LENGTH..=(h / 2));
     }
 
+    /// Grow condition
+    fn grow_condition(&self) -> bool {
+        self.speed > 8
+    }
+
     /// Grow up matrix worm characters array
     fn grow(&mut self, head: u16, rng: &mut rand::prelude::ThreadRng) {
-        let _ = match self.speed {
-            8..=20 => self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone()),
-            _ => {
-                // if position not changed, do not change first character
+        match self.grow_condition() {
+            true => self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone()),
+            false => {
+                // if position on screen not changed, do not grow body vector
                 let delta: i16 = head as i16 - self.fy.round() as i16;
                 if delta > 0 {
                     self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
@@ -115,7 +143,7 @@ impl VerticalWorm {
             }
         };
 
-        if self.body.len() >= self.max_length as usize {
+        if self.body.len() > self.max_length as usize {
             self.body.truncate(self.max_length as usize);
         }
     }
@@ -132,8 +160,10 @@ impl VerticalWorm {
         // worm vector somewhere in the middle of the scren
         // worm vector reach bottom and need to fade out
 
+        // NOTE: looks like guard, but why i even need it here?
         if self.body.len() == 0 {
             self.reset(w, h, rng);
+            return;
         }
 
         // new fy coordinate
@@ -144,7 +174,7 @@ impl VerticalWorm {
         let tail = fy.round() as i16 - self.body.len() as i16;
 
         if tail <= 0 {
-            // not fully come from top
+            // not fully come out from top
             self.grow(head, rng);
             self.fy = fy;
             return;
@@ -170,7 +200,6 @@ impl VerticalWorm {
             } else {
                 self.reset(w, h, rng);
             }
-            // self.reset(w, h, rng);
         }
     }
 }
@@ -180,8 +209,173 @@ mod tests {
     use super::*;
 
     #[test]
-    fn create_new() {
+    fn create_new_and_reset() {
         let mut rng = rand::thread_rng();
-        let _new_worm = VerticalWorm::new(100, 100, 1 as usize, &mut rng);
+        let mut new_worm = VerticalWorm::new(100, 100, 1 as usize, &mut rng);
+        assert_eq!(new_worm.body.len(), 1);
+        assert_eq!(new_worm.finish, false);
+
+        new_worm.reset(100, 100, &mut rng);
+        assert_eq!(new_worm.fy, 0.0);
+        assert_eq!(new_worm.body.len(), 1);
+    }
+
+    #[test]
+    fn generate_a_lot_of_worms() {
+        let mut rng = rand::thread_rng();
+        let mut worms = vec![];
+        for index in 1..=1000 {
+            worms.push(VerticalWorm::new(100, 100, index, &mut rng));
+        }
+        assert_eq!(worms.len(), 1000);
+    }
+
+    #[test]
+    fn to_points() {
+        let new_worm = VerticalWorm::from_values(
+            1,
+            vec!['a'],
+            VerticalWormStyle::Gradient,
+            10.3,
+            10.8,
+            20,
+            10,
+            false,
+        );
+        let (x, y) = new_worm.to_points();
+        assert_eq!(x, 10);
+        assert_eq!(y, 11);
+    }
+
+    #[test]
+    fn grow() {
+        let mut rng = rand::thread_rng();
+        let mut new_worm = VerticalWorm::from_values(
+            1,
+            vec!['a'],
+            VerticalWormStyle::Front,
+            10.3,
+            10.8,
+            20,
+            10,
+            false,
+        );
+        new_worm.grow(10, &mut rng);
+        assert_eq!(new_worm.body.len(), 2);
+        assert_eq!(new_worm.body.get(1), Some(&'a'));
+
+        let mut new_worm = VerticalWorm::from_values(
+            1,
+            vec!['b'],
+            VerticalWormStyle::Middle,
+            10.3,
+            10.8,
+            20,
+            4,
+            false,
+        );
+        new_worm.grow(12, &mut rng);
+        assert_eq!(new_worm.body.len(), 2);
+        assert_eq!(new_worm.body.get(1), Some(&'b'));
+        new_worm.grow(11, &mut rng);
+        assert_eq!(new_worm.body.len(), 2);
+
+        let mut new_worm = VerticalWorm::from_values(
+            1,
+            vec!['c'],
+            VerticalWormStyle::Back,
+            10.3,
+            10.8,
+            3,
+            4,
+            false,
+        );
+        new_worm.grow(12, &mut rng);
+        new_worm.grow(12, &mut rng);
+        new_worm.grow(12, &mut rng);
+        new_worm.grow(12, &mut rng);
+        assert_eq!(new_worm.body.len(), 3);
+    }
+
+    #[test]
+    fn update() {
+        let mut rng = rand::thread_rng();
+
+        // nothing special worm update
+        let mut new_worm = VerticalWorm::from_values(
+            1,
+            vec!['c'],
+            VerticalWormStyle::Back,
+            10.3,
+            10.8,
+            3,
+            8,
+            false,
+        );
+        new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
+        assert_eq!(new_worm.fy.round() as u16, 19);
+        assert_eq!(new_worm.body.len(), 2);
+
+        // edge case when body len is 0 (why?)
+        let mut new_worm = VerticalWorm::from_values(
+            1,
+            vec![],
+            VerticalWormStyle::Middle,
+            10.3,
+            10.8,
+            3,
+            8,
+            false,
+        );
+        new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
+        assert_eq!(new_worm.body.len(), 1);
+        assert_eq!(new_worm.fy, 0.0); // should be reseted
+
+        // when tail_y < 0
+        let mut new_worm = VerticalWorm::from_values(
+            1,
+            vec!['a', 'b', 'c', 'd'],
+            VerticalWormStyle::Fading,
+            10.0,
+            2.0,
+            5,
+            2,
+            false,
+        );
+        new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
+        assert_eq!(new_worm.body.len(), 5);
+        assert_eq!((new_worm.fy - new_worm.body.len() as f32) < 0.0, true);
+
+        // when head_y > screen height
+        let mut new_worm = VerticalWorm::from_values(
+            1,
+            vec!['a', 'b', 'c', 'd'],
+            VerticalWormStyle::Fading,
+            10.0,
+            30.8,
+            5,
+            2,
+            false,
+        );
+        new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
+        assert_eq!(new_worm.body.len(), 3);
+        assert_eq!(new_worm.fy < 30.0, true);
+
+        // when head_y > screen height and body len is 2
+        let mut new_worm = VerticalWorm::from_values(
+            1,
+            vec!['a', 'b'],
+            VerticalWormStyle::Fading,
+            10.0,
+            30.8,
+            5,
+            2,
+            false,
+        );
+        new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
+        assert_eq!(new_worm.body.len(), 1);
+        assert_eq!(new_worm.fy, 29.0);
+        new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
+        assert_eq!(new_worm.fy, 0.0); // should be reseted there
     }
 }
