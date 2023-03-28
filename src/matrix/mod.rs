@@ -1,6 +1,5 @@
 use charworm::{VerticalWorm, VerticalWormStyle};
 
-use crossterm::{event, Result};
 use rand;
 use rand::Rng;
 use std::time::Duration;
@@ -8,7 +7,7 @@ use std::time::Duration;
 mod charworm;
 pub mod matrix;
 
-static MAX_WORMS: usize = 300;
+static MAX_WORMS: usize = 600;
 
 pub enum QueueItems<'a> {
     MoveTo(u16, u16),
@@ -58,7 +57,6 @@ impl Matrix {
         }
     }
 
-    // pub fn draw(&mut self, stdout: &mut Stdout) -> Vec<QueueItems> {
     pub fn draw(&mut self) -> Vec<QueueItems> {
         let mut queue: Vec<QueueItems> = vec![];
         // queue all space without worm to delete
@@ -111,7 +109,7 @@ impl Matrix {
         }
     }
 
-    pub fn update(&mut self) -> Result<()> {
+    pub fn update(&mut self) {
         // start updating/drawing from lower worms
         // self.worms.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
         // self.worms.reverse();
@@ -139,27 +137,6 @@ impl Matrix {
                 }
             }
         }
-
-        Ok(())
-    }
-
-    pub fn process_input() -> Result<bool> {
-        if event::poll(Duration::from_millis(10))? {
-            match event::read()? {
-                event::Event::Key(keyevent) => {
-                    if keyevent
-                        == event::KeyEvent::new(
-                            event::KeyCode::Char('q'),
-                            event::KeyModifiers::NONE,
-                        )
-                    {
-                        return Ok(false);
-                    }
-                }
-                _ => {}
-            }
-        }
-        Ok(true)
     }
 }
 

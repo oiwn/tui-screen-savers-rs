@@ -14,6 +14,7 @@
 ** update screen size (h/w) during execution (currently doesn't track it)
 
 * After Features
+** github CI/CD pipeline
 ** need tests
 - [X] test VerticalWorm
 - [X] decouple drawing Matrix from calculations

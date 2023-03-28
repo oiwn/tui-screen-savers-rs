@@ -1,7 +1,7 @@
 use crate::matrix::charworm::VerticalWormStyle;
 use crate::matrix::{Matrix, QueueItems};
 use crossterm::{
-    cursor,
+    cursor, event,
     style::{self, Stylize},
     terminal, QueueableCommand, Result,
 };
@@ -11,10 +11,24 @@ use std::{
 };
 
 static INITIAL_WORMS: usize = 80;
-static MAX_WORMS: usize = 300;
 
-pub fn draw(queue: &Vec<QueueItems>) -> Result<()> {
-    Ok(())
+pub fn process_input() -> Result<bool> {
+    if event::poll(Duration::from_millis(10))? {
+        match event::read()? {
+            event::Event::Key(keyevent) => {
+                if keyevent
+                    == event::KeyEvent::new(
+                        event::KeyCode::Char('q'),
+                        event::KeyModifiers::NONE,
+                    )
+                {
+                    return Ok(false);
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(true)
 }
 
 pub fn run_loop(stdout: &mut Stdout) -> Result<()> {
@@ -25,7 +39,7 @@ pub fn run_loop(stdout: &mut Stdout) -> Result<()> {
     // main loop
     stdout.queue(terminal::Clear(terminal::ClearType::All))?;
     while is_running {
-        is_running = Matrix::process_input()?;
+        is_running = process_input()?;
         std::thread::sleep(Duration::from_millis(10));
 
         let queue = matrix.draw();
@@ -41,7 +55,7 @@ pub fn run_loop(stdout: &mut Stdout) -> Result<()> {
             };
         }
         stdout.flush()?;
-        matrix.update()?;
+        matrix.update();
     }
     Ok(())
 }
