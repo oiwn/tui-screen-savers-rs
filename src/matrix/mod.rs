@@ -1,7 +1,6 @@
 use charworm::{VerticalWorm, VerticalWormStyle};
 
-use rand;
-use rand::Rng;
+use rand::{self, Rng};
 use std::time::Duration;
 
 mod charworm;
@@ -9,6 +8,7 @@ pub mod matrix;
 
 static MAX_WORMS: usize = 600;
 
+#[derive(Clone)]
 pub enum QueueItems<'a> {
     MoveTo(u16, u16),
     PrintChar(&'a VerticalWormStyle, u16, char),
@@ -18,7 +18,7 @@ pub enum QueueItems<'a> {
 pub struct Matrix {
     screen_width: u16,
     screen_height: u16,
-    worms: Vec<VerticalWorm>,
+    pub worms: Vec<VerticalWorm>,
     map: ndarray::Array2<usize>,
     rng: rand::prelude::ThreadRng,
 }
@@ -57,6 +57,7 @@ impl Matrix {
         }
     }
 
+    // Form queue of commands required to draw all frame
     pub fn draw(&mut self) -> Vec<QueueItems> {
         let mut queue: Vec<QueueItems> = vec![];
         // queue all space without worm to delete
@@ -145,14 +146,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn create_new() {}
+    fn create_new() {
+        let m = Matrix::new(30, 30, 20);
+        assert_eq!(m.worms.len(), 20);
+        assert_eq!(m.map.shape(), &[30, 30]);
+    }
 
     #[test]
-    fn draw() {}
+    fn draw() {
+        let mut m = Matrix::new(30, 30, 20);
+        let q = m.draw();
+        assert_eq!(q.len() > 0, true);
+    }
 
     #[test]
-    fn update() {}
-
-    #[test]
-    fn run_loop() {}
+    fn update() {
+        let mut m = Matrix::new(30, 30, 20);
+        let q_1_len = m.draw().len();
+        m.update();
+        let q_2_len = m.draw().len();
+        assert_eq!(q_2_len > q_1_len, true);
+    }
 }

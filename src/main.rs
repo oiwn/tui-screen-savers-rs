@@ -27,7 +27,7 @@ fn main() -> crossterm::Result<()> {
     execute!(stdout, cursor::Hide)?;
     execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide)?;
 
-    match args.screen_saver.as_str() {
+    let fps = match args.screen_saver.as_str() {
         "matrix" => matrix::matrix::run_loop(&mut stdout)?,
         _ => matrix::matrix::run_loop(&mut stdout)?,
     };
@@ -35,6 +35,7 @@ fn main() -> crossterm::Result<()> {
     execute!(stdout, cursor::Show)?;
     execute!(stdout, cursor::Show, terminal::LeaveAlternateScreen)?;
     terminal::disable_raw_mode()?;
+    println!("Frames per second: {}", fps);
     Ok(())
 }
 

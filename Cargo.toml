@@ -15,6 +15,14 @@ rand = "0.8.5"
 rayon = "1.6.0"
 simple_logger = "4.0.0"
 
+
+[dev-dependencies]
+criterion = "0.4"
+
+[[bench]]
+name = "matrix"
+harness = false
+
 # old optimization
 # [profile.release]
 # strip = true

@@ -31,18 +31,27 @@ pub fn process_input() -> Result<bool> {
     Ok(true)
 }
 
-pub fn run_loop(stdout: &mut Stdout) -> Result<()> {
+pub fn run_loop<W>(stdout: &mut W) -> Result<f64>
+where
+    W: Write,
+{
     let mut is_running = true;
+    let mut frames_per_second = 0.0;
     let (width, height) = terminal::size()?;
     let mut matrix = Matrix::new(width, height, INITIAL_WORMS);
+
+    #[cfg(test)]
+    let mut iterations: u32 = 0;
 
     // main loop
     stdout.queue(terminal::Clear(terminal::ClearType::All))?;
     while is_running {
+        let started_at: std::time::SystemTime = std::time::SystemTime::now();
         is_running = process_input()?;
         std::thread::sleep(Duration::from_millis(10));
 
         let queue = matrix.draw();
+
         for draw_command in queue.iter() {
             match draw_command {
                 QueueItems::MoveTo(x, y) => {
@@ -56,8 +65,19 @@ pub fn run_loop(stdout: &mut Stdout) -> Result<()> {
         }
         stdout.flush()?;
         matrix.update();
+        let ended_at = std::time::SystemTime::now();
+        let delta = ended_at.duration_since(started_at).unwrap();
+        frames_per_second = 1.0 / delta.as_secs_f64();
+
+        #[cfg(test)]
+        {
+            iterations += 1;
+            if iterations > 10 {
+                is_running = false;
+            }
+        }
     }
-    Ok(())
+    Ok(frames_per_second)
 }
 
 pub fn pick_style(
@@ -65,7 +85,6 @@ pub fn pick_style(
     pos: usize,
     ch: &char,
 ) -> style::PrintStyledContent<char> {
-    // let gradient = two_step_color_gradient(10);
     let worm_style = match vw_style {
         VerticalWormStyle::Front => match pos {
             0 => style::PrintStyledContent(ch.white().bold()),
@@ -105,5 +124,22 @@ pub fn pick_style(
         },
     };
     worm_style
-    // style::PrintStyledContent(ch.green())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn run_loop_10_iterations() {
+        let mut stdout = Vec::new();
+        let _ = run_loop(&mut stdout);
+    }
+
+    #[test]
+    fn run_loop_fps_gte_20() {
+        let mut stdout = Vec::new();
+        let fps = run_loop(&mut stdout).unwrap();
+        assert_eq!(fps > 20.0, true);
+    }
 }
