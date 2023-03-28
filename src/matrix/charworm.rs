@@ -118,6 +118,7 @@ impl VerticalWorm {
     fn reset(&mut self, w: u16, h: u16, rng: &mut rand::prelude::ThreadRng) {
         self.body.clear();
         self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
+        self.vw_style = rand::random();
         self.fy = 0.0;
         self.fx = rng.gen_range(0..w) as f32;
         self.speed = rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1);
@@ -190,7 +191,7 @@ impl VerticalWorm {
         if head >= h {
             // come to bottom
             self.finish = true;
-            self.vw_style = VerticalWormStyle::Back;
+            self.vw_style = VerticalWormStyle::Fading;
             // truncate vector so head will remain the same but cut the tail
             let new_body_len = self.body.len() as i16 - 1;
             if new_body_len >= 1 {

@@ -28,8 +28,8 @@ fn main() -> crossterm::Result<()> {
     execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide)?;
 
     match args.screen_saver.as_str() {
-        "matrix" => matrix::run_loop(&mut stdout)?,
-        _ => matrix::run_loop(&mut stdout)?,
+        "matrix" => matrix::matrix::run_loop(&mut stdout)?,
+        _ => matrix::matrix::run_loop(&mut stdout)?,
     };
 
     execute!(stdout, cursor::Show)?;

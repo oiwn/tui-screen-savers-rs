@@ -1,66 +1,19 @@
 use charworm::{VerticalWorm, VerticalWormStyle};
-use crossterm::{
-    cursor, event,
-    style::{self, Stylize},
-    terminal, QueueableCommand, Result,
-};
+
+use crossterm::{event, Result};
 use rand;
 use rand::Rng;
-use std::{
-    io::{Stdout, Write},
-    time::Duration,
-};
+use std::time::Duration;
 
 mod charworm;
+pub mod matrix;
 
-static INITIAL_WORMS: usize = 80;
 static MAX_WORMS: usize = 300;
 
-fn lerp(a: u8, b: u8, t: f32) -> u8 {
-    (a as f32 * (1.0 - t) + b as f32 * t).round() as u8
-}
-
-struct Color {
-    r: u8,
-    g: u8,
-    b: u8,
-}
-
-fn two_step_color_gradient(length: usize) -> Vec<Color> {
-    let start_color = Color {
-        r: 255,
-        g: 255,
-        b: 255,
-    };
-    let middle_color = Color { r: 0, g: 255, b: 0 };
-    let end_color = Color {
-        r: 10,
-        g: 10,
-        b: 10,
-    };
-
-    let half_length = length / 2;
-
-    let mut gradient = vec![];
-    for i in 1..=length {
-        let (r, g, b) = if i <= half_length {
-            let t = i as f32 / half_length as f32;
-            (
-                lerp(start_color.r, middle_color.r, t),
-                lerp(start_color.g, middle_color.g, t),
-                lerp(start_color.b, middle_color.b, t),
-            )
-        } else {
-            let t = (i - half_length) as f32 / half_length as f32;
-            (
-                lerp(middle_color.r, end_color.r, t),
-                lerp(middle_color.g, end_color.g, t),
-                lerp(middle_color.b, end_color.b, t),
-            )
-        };
-        gradient.push(Color { r, g, b });
-    }
-    gradient
+pub enum QueueItems<'a> {
+    MoveTo(u16, u16),
+    PrintChar(&'a VerticalWormStyle, u16, char),
+    ClearChar,
 }
 
 pub struct Matrix {
@@ -73,10 +26,10 @@ pub struct Matrix {
 
 impl Matrix {
     // Initialize screensaver
-    pub fn new(width: u16, height: u16) -> Self {
+    pub fn new(width: u16, height: u16, number_of_worms: usize) -> Self {
         let mut rng = rand::thread_rng();
         let mut worms: Vec<VerticalWorm> = vec![];
-        for worm_id in 1..=INITIAL_WORMS {
+        for worm_id in 1..=number_of_worms {
             worms.push(VerticalWorm::new(width, height, worm_id, &mut rng));
         }
 
@@ -105,62 +58,15 @@ impl Matrix {
         }
     }
 
-    fn pick_style(
-        &self,
-        vw_style: &VerticalWormStyle,
-        pos: usize,
-        ch: &char,
-    ) -> style::PrintStyledContent<char> {
-        // let gradient = two_step_color_gradient(10);
-        let worm_style = match vw_style {
-            VerticalWormStyle::Front => match pos {
-                0 => style::PrintStyledContent(ch.white().bold()),
-                1 => style::PrintStyledContent(ch.white()),
-                2..=4 => style::PrintStyledContent(ch.green()),
-                5..=7 => style::PrintStyledContent(ch.dark_green()),
-                8..=12 => style::PrintStyledContent(ch.grey()),
-                _ => style::PrintStyledContent(ch.dark_grey()),
-            },
-            VerticalWormStyle::Middle => match pos {
-                0 => style::PrintStyledContent(ch.white()),
-                1..=3 => style::PrintStyledContent(ch.green()),
-                4..=5 => style::PrintStyledContent(ch.dark_green()),
-                6..=10 => style::PrintStyledContent(ch.grey()),
-                _ => style::PrintStyledContent(ch.dark_grey()),
-            },
-            VerticalWormStyle::Back => match pos {
-                0 => style::PrintStyledContent(ch.green()),
-                1..=3 => style::PrintStyledContent(ch.dark_green()),
-                4..=5 => style::PrintStyledContent(ch.grey()),
-                _ => style::PrintStyledContent(ch.dark_grey()),
-            },
-            VerticalWormStyle::Fading => match pos {
-                0..=4 => style::PrintStyledContent(ch.grey()),
-                _ => style::PrintStyledContent(ch.dark_grey()),
-            },
-            VerticalWormStyle::Gradient => match pos {
-                0 => style::PrintStyledContent(ch.white().bold()),
-                _ => {
-                    let color = style::Color::Rgb {
-                        r: 0,
-                        g: 255 - (pos as u16 * 12).clamp(0, 255) as u8,
-                        b: 0,
-                    };
-                    style::PrintStyledContent(ch.with(color))
-                }
-            },
-        };
-        worm_style
-        // style::PrintStyledContent(ch.green())
-    }
-
-    pub fn draw(&mut self, stdout: &mut Stdout) -> Result<()> {
+    // pub fn draw(&mut self, stdout: &mut Stdout) -> Vec<QueueItems> {
+    pub fn draw(&mut self) -> Vec<QueueItems> {
+        let mut queue: Vec<QueueItems> = vec![];
         // queue all space without worm to delete
         for (x, row) in self.map.outer_iter().enumerate() {
             for (y, val) in row.iter().enumerate() {
                 if *val == 0 {
-                    stdout.queue(cursor::MoveTo(x as u16, y as u16))?;
-                    stdout.queue(style::Print(' '))?;
+                    queue.push(QueueItems::MoveTo(x as u16, y as u16));
+                    queue.push(QueueItems::ClearChar);
                 }
             }
         }
@@ -175,20 +81,18 @@ impl Matrix {
                         if self.map[[x as usize, (y - pos as u16) as usize]]
                             == worm.worm_id
                         {
-                            stdout.queue(cursor::MoveTo(x, yy as u16))?;
-                            stdout.queue(self.pick_style(
+                            queue.push(QueueItems::MoveTo(x as u16, yy as u16));
+                            queue.push(QueueItems::PrintChar(
                                 &worm.vw_style,
-                                pos,
-                                // &worm.worm_id.to_string().chars().next().unwrap(),
-                                ch,
-                            ))?;
-                            // self.map[[x as usize, yy as usize]] = worm.worm_id;
+                                pos as u16,
+                                ch.clone(),
+                            ));
                         }
                     }
                 }
             }
         }
-        Ok(())
+        queue
     }
 
     /// Add one more worm with decent chance
@@ -259,20 +163,19 @@ impl Matrix {
     }
 }
 
-pub fn run_loop(stdout: &mut Stdout) -> Result<()> {
-    let mut is_running = true;
-    let (width, height) = terminal::size()?;
-    let mut matrix = Matrix::new(width, height);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    // main loop
-    stdout.queue(terminal::Clear(terminal::ClearType::All))?;
-    while is_running {
-        is_running = Matrix::process_input()?;
-        std::thread::sleep(Duration::from_millis(10));
+    #[test]
+    fn create_new() {}
 
-        matrix.draw(stdout)?;
-        stdout.flush()?;
-        matrix.update()?;
-    }
-    Ok(())
+    #[test]
+    fn draw() {}
+
+    #[test]
+    fn update() {}
+
+    #[test]
+    fn run_loop() {}
 }

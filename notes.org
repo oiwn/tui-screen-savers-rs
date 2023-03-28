@@ -11,11 +11,12 @@
 ** DONE different first character rotation for worms
 ** TODO move "map" (with position of worms with worm_id) into separate module
 ** DONE Add speed optimization for release version
+** update screen size (h/w) during execution (currently doesn't track it)
 
 * After Features
 ** need tests
 - [X] test VerticalWorm
-- [ ] decouple drawing VerticalWorms from calculations
+- [X] decouple drawing Matrix from calculations
 - [ ] test matrix calculation layer
 ** need benchmarks
 
