@@ -1,3 +1,6 @@
+rain-bench-base:
+	cargo test --release --bench matrix_benchmarks -- --save-baseline started_from_here
+
 run-release:
 	cargo build --release && ./target/release/matrix-rs
 

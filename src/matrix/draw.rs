@@ -1,14 +1,11 @@
 use crate::matrix::charworm::VerticalWormStyle;
-use crate::matrix::{Matrix, QueueItems};
+use crate::matrix::rain::{Matrix, QueueItems};
 use crossterm::{
     cursor, event,
     style::{self, Stylize},
     terminal, QueueableCommand, Result,
 };
-use std::{
-    io::{Stdout, Write},
-    time::Duration,
-};
+use std::{io::Write, time::Duration};
 
 static INITIAL_WORMS: usize = 80;
 
@@ -31,7 +28,7 @@ pub fn process_input() -> Result<bool> {
     Ok(true)
 }
 
-pub fn run_loop<W>(stdout: &mut W) -> Result<f64>
+pub fn run_loop<W>(stdout: &mut W, iterations: Option<usize>) -> Result<f64>
 where
     W: Write,
 {
@@ -40,8 +37,8 @@ where
     let (width, height) = terminal::size()?;
     let mut matrix = Matrix::new(width, height, INITIAL_WORMS);
 
-    #[cfg(test)]
-    let mut iterations: u32 = 0;
+    // #[cfg(test)]
+    let mut iters: usize = 0;
 
     // main loop
     stdout.queue(terminal::Clear(terminal::ClearType::All))?;
@@ -69,13 +66,13 @@ where
         let delta = ended_at.duration_since(started_at).unwrap();
         frames_per_second = 1.0 / delta.as_secs_f64();
 
-        #[cfg(test)]
-        {
-            iterations += 1;
-            if iterations > 10 {
+        // #[cfg(test)]
+        if let Some(iterations) = iterations {
+            iters += 1;
+            if iters > iterations {
                 is_running = false;
             }
-        }
+        };
     }
     Ok(frames_per_second)
 }
@@ -133,13 +130,13 @@ mod tests {
     #[test]
     fn run_loop_10_iterations() {
         let mut stdout = Vec::new();
-        let _ = run_loop(&mut stdout);
+        let _ = run_loop(&mut stdout, Some(10));
     }
 
     #[test]
     fn run_loop_fps_gte_20() {
         let mut stdout = Vec::new();
-        let fps = run_loop(&mut stdout).unwrap();
+        let fps = run_loop(&mut stdout, Some(10)).unwrap();
         assert_eq!(fps > 20.0, true);
     }
 }

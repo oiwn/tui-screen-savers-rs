@@ -8,6 +8,7 @@
 ** DONE somehow need to slower rotation of worms characters
 ** DONE different first character rotation for worms
 ** DONE calculate average fps, print it after execution
+** TODO keep fps stable and above some value - 20, 30, 60?
 ** TODO make worms fade away when they reach the bottom
 ** TODO even better gradient (2 steps from white to dark gray)
 ** TODO store options as MatrixOptions
@@ -20,7 +21,11 @@
 - [X] test VerticalWorm
 - [X] decouple drawing Matrix from calculations
 - [X] test matrix calculation layer
-** need benchmarks
+** DONE need benchmarks
+- [X] need to make whole thing into library with option to compile binary
+- [X] benchmarks for VerticalWorms
+- [X] benchmarks for Matrix
+- [X] benchmarsk for main loop with drawing
 
 * Optimizations
 ** clamp coordinates to make sure they fit the screen

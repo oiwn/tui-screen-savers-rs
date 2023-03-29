@@ -1,3 +1,4 @@
+#![cfg(not(test))]
 use crossterm::{self, cursor, execute, terminal};
 use std::{io, process};
 
@@ -28,8 +29,8 @@ fn main() -> crossterm::Result<()> {
     execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide)?;
 
     let fps = match args.screen_saver.as_str() {
-        "matrix" => matrix::matrix::run_loop(&mut stdout)?,
-        _ => matrix::matrix::run_loop(&mut stdout)?,
+        "matrix" => matrix::draw::run_loop(&mut stdout, None)?,
+        _ => matrix::draw::run_loop(&mut stdout, None)?,
     };
 
     execute!(stdout, cursor::Show)?;

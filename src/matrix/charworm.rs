@@ -179,14 +179,14 @@ impl VerticalWorm {
             self.grow(head, rng);
             self.fy = fy;
             return;
-        }
+        };
 
         if (head < h) && (tail > 0) {
             // somewhere in the middle
             self.grow(head, rng);
             self.fy = fy;
             return;
-        }
+        };
 
         if head >= h {
             // come to bottom
@@ -201,7 +201,7 @@ impl VerticalWorm {
             } else {
                 self.reset(w, h, rng);
             }
-        }
+        };
     }
 }
 
