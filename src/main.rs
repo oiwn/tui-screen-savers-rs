@@ -2,7 +2,8 @@
 use crossterm::{self, cursor, execute, terminal};
 use std::{io, process};
 
-mod matrix;
+mod buffer;
+mod rain;
 
 const HELP: &str = "\
 Terminal screensavers";
@@ -29,8 +30,8 @@ fn main() -> crossterm::Result<()> {
     execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide)?;
 
     let fps = match args.screen_saver.as_str() {
-        "matrix" => matrix::draw::run_loop(&mut stdout, None)?,
-        _ => matrix::draw::run_loop(&mut stdout, None)?,
+        "matrix" => rain::draw::run_loop(&mut stdout, None)?,
+        _ => rain::draw::run_loop(&mut stdout, None)?,
     };
 
     execute!(stdout, cursor::Show)?;

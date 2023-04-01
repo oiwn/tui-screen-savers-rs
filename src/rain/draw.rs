@@ -1,5 +1,5 @@
-use crate::matrix::charworm::VerticalWormStyle;
-use crate::matrix::rain::{Matrix, QueueItems};
+use crate::rain::digital_rain::DigitalRain;
+// use crate::rain::rain_drop::RainDropStyle;
 use crossterm::{
     cursor, event,
     style::{self, Stylize},
@@ -7,7 +7,7 @@ use crossterm::{
 };
 use std::{io::Write, time::Duration};
 
-static INITIAL_WORMS: usize = 80;
+static INITIAL_WORMS: usize = 100;
 
 pub fn process_input() -> Result<bool> {
     if event::poll(Duration::from_millis(10))? {
@@ -35,7 +35,7 @@ where
     let mut is_running = true;
     let mut frames_per_second = 0.0;
     let (width, height) = terminal::size()?;
-    let mut matrix = Matrix::new(width, height, INITIAL_WORMS);
+    let mut matrix = DigitalRain::new(width, height, INITIAL_WORMS);
 
     // #[cfg(test)]
     let mut iters: usize = 0;
@@ -47,24 +47,19 @@ where
         is_running = process_input()?;
         std::thread::sleep(Duration::from_millis(10));
 
-        let queue = matrix.draw();
-
-        for draw_command in queue.iter() {
-            match draw_command {
-                QueueItems::MoveTo(x, y) => {
-                    stdout.queue(cursor::MoveTo(x.clone(), y.clone()))?
-                }
-                QueueItems::PrintChar(s, p, c) => {
-                    stdout.queue(pick_style(&s, p.clone() as usize, c))?
-                }
-                QueueItems::ClearChar => stdout.queue(style::Print(' '))?,
-            };
+        let queue = matrix.get_diff();
+        for item in queue.iter() {
+            let (x, y, cell) = item;
+            stdout.queue(cursor::MoveTo(*x as u16, *y as u16))?;
+            stdout
+                .queue(style::PrintStyledContent(cell.symbol.with(cell.color)))?;
         }
+
         stdout.flush()?;
         matrix.update();
         let ended_at = std::time::SystemTime::now();
         let delta = ended_at.duration_since(started_at).unwrap();
-        frames_per_second = 1.0 / delta.as_secs_f64();
+        frames_per_second = (frames_per_second + (1.0 / delta.as_secs_f64())) / 2.0;
 
         // #[cfg(test)]
         if let Some(iterations) = iterations {
@@ -77,13 +72,28 @@ where
     Ok(frames_per_second)
 }
 
+pub fn pick_color(pos: usize) -> style::Color {
+    match pos {
+        0 => style::Color::White,
+        _ => {
+            let color = style::Color::Rgb {
+                r: 0,
+                g: 255 - (pos as u16 * 12).clamp(0, 255) as u8,
+                b: 0,
+            };
+            color
+        }
+    }
+}
+
+/* TODO: Style chars, need to add style into Cell along with color information
 pub fn pick_style(
-    vw_style: &VerticalWormStyle,
+    vw_style: &RainDropStyle,
     pos: usize,
     ch: &char,
 ) -> style::PrintStyledContent<char> {
     let worm_style = match vw_style {
-        VerticalWormStyle::Front => match pos {
+        RainDropStyle::Front => match pos {
             0 => style::PrintStyledContent(ch.white().bold()),
             1 => style::PrintStyledContent(ch.white()),
             2..=4 => style::PrintStyledContent(ch.green()),
@@ -91,24 +101,24 @@ pub fn pick_style(
             8..=12 => style::PrintStyledContent(ch.grey()),
             _ => style::PrintStyledContent(ch.dark_grey()),
         },
-        VerticalWormStyle::Middle => match pos {
+        RainDropStyle::Middle => match pos {
             0 => style::PrintStyledContent(ch.white()),
             1..=3 => style::PrintStyledContent(ch.green()),
             4..=5 => style::PrintStyledContent(ch.dark_green()),
             6..=10 => style::PrintStyledContent(ch.grey()),
             _ => style::PrintStyledContent(ch.dark_grey()),
         },
-        VerticalWormStyle::Back => match pos {
+        RainDropStyle::Back => match pos {
             0 => style::PrintStyledContent(ch.green()),
             1..=3 => style::PrintStyledContent(ch.dark_green()),
             4..=5 => style::PrintStyledContent(ch.grey()),
             _ => style::PrintStyledContent(ch.dark_grey()),
         },
-        VerticalWormStyle::Fading => match pos {
+        RainDropStyle::Fading => match pos {
             0..=4 => style::PrintStyledContent(ch.grey()),
             _ => style::PrintStyledContent(ch.dark_grey()),
         },
-        VerticalWormStyle::Gradient => match pos {
+        RainDropStyle::Gradient => match pos {
             0 => style::PrintStyledContent(ch.white().bold()),
             _ => {
                 let color = style::Color::Rgb {
@@ -122,6 +132,7 @@ pub fn pick_style(
     };
     worm_style
 }
+*/
 
 #[cfg(test)]
 mod tests {
