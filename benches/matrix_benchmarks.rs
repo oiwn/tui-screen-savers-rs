@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use matrix_rs::matrix::{charworm, draw, rain};
+use matrix_rs::matrix::{digital_rain, draw, rain_drop};
 use rand;
 use std::time::Duration;
 
@@ -18,20 +18,20 @@ fn run_loop_benchmark(_c: &mut Criterion) {
 }
 
 fn vertical_worm_benchmark(c: &mut Criterion) {
-    c.bench_function("benchmark_new_1000", |b| {
+    c.bench_function("benchmark_worm_new_1000", |b| {
         b.iter(|| {
             let mut rng = rand::thread_rng();
             for index in 1..=1000 {
-                charworm::VerticalWorm::new(100, 100, index, &mut rng);
+                rain_drop::RainDrop::new(100, 100, index, &mut rng);
             }
         })
     });
 
-    c.bench_function("benchmark_update_1000", |b| {
+    c.bench_function("benchmark_worm_update_1000", |b| {
         let mut rng = rand::thread_rng();
-        let mut worms: Vec<charworm::VerticalWorm> = vec![];
+        let mut worms: Vec<rain_drop::RainDrop> = vec![];
         for index in 1..=1000 {
-            worms.push(charworm::VerticalWorm::new(100, 100, index, &mut rng));
+            worms.push(rain_drop::RainDrop::new(100, 100, index, &mut rng));
         }
         b.iter(|| {
             for worm in worms.iter_mut() {
@@ -42,15 +42,15 @@ fn vertical_worm_benchmark(c: &mut Criterion) {
 }
 
 fn digital_rain_benchmark(c: &mut Criterion) {
-    c.bench_function("benchmark_new_200", |b| {
+    c.bench_function("benchmark_rain_new_200", |b| {
         b.iter(|| {
-            let _ = rain::Matrix::new(100, 100, 200);
+            let _ = digital_rain::DigitalRain::new(100, 100, 200);
         })
     });
 
-    c.bench_function("benchmark_update_1000", |b| {
+    c.bench_function("benchmark_rain_update_10", |b| {
         b.iter(|| {
-            let mut rain = rain::Matrix::new(100, 100, 200);
+            let mut rain = digital_rain::DigitalRain::new(100, 100, 200);
             for _ in 1..=10 {
                 rain.update();
             }

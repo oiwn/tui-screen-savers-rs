@@ -8,6 +8,13 @@
 ** DONE somehow need to slower rotation of worms characters
 ** DONE different first character rotation for worms
 ** DONE calculate average fps, print it after execution
+** DONE raname Matrix to DigitalRain
+** DONE rename charworm into raindrops
+** TODO zbuffer for different worm positions
+** TODO to fade worms can assume max_length is initial worm length
+can be used to calculate color from pos
+** TODO remove ndarray from digital rain
+** rain drop should return list of characters with colors
 ** TODO keep fps stable and above some value - 20, 30, 60?
 ** TODO make worms fade away when they reach the bottom
 ** TODO even better gradient (2 steps from white to dark gray)
@@ -28,6 +35,10 @@
 - [X] benchmarsk for main loop with drawing
 
 * Optimizations
+** fx in RainDrop could be u16 or usize
 ** clamp coordinates to make sure they fit the screen
-** update crossterm
+** DONE update crossterm
 ** SPEED_RANGE as interval type
+** DONE implement buffer to keep only differences
+** DONE need to minimize amount of clean cells commands
+on next frame not all cell should be cleaned

@@ -29,7 +29,7 @@ static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
 static MIN_WORM_LENGTH: u16 = 10;
 static SPEED_RANGE: (u16, u16) = (2, 20);
 
-pub enum VerticalWormStyle {
+pub enum RainDropStyle {
     Front,
     Middle,
     Back,
@@ -37,10 +37,10 @@ pub enum VerticalWormStyle {
     Gradient,
 }
 
-pub struct VerticalWorm {
+pub struct RainDrop {
     pub worm_id: usize,
     pub body: Vec<char>,
-    pub vw_style: VerticalWormStyle,
+    pub vw_style: RainDropStyle,
     pub fx: f32,
     pub fy: f32,
     pub max_length: u16,
@@ -48,21 +48,21 @@ pub struct VerticalWorm {
     pub speed: u16,
 }
 
-impl Distribution<VerticalWormStyle> for Standard {
+impl Distribution<RainDropStyle> for Standard {
     /// Choose from range
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> VerticalWormStyle {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> RainDropStyle {
         match rng.gen_range(0..=6) {
-            0 => VerticalWormStyle::Front,
-            1 => VerticalWormStyle::Middle,
-            2 => VerticalWormStyle::Back,
-            3 => VerticalWormStyle::Fading,
-            _ => VerticalWormStyle::Gradient,
+            0 => RainDropStyle::Front,
+            1 => RainDropStyle::Middle,
+            2 => RainDropStyle::Back,
+            3 => RainDropStyle::Fading,
+            _ => RainDropStyle::Gradient,
         }
     }
 }
 
 /// Set of operations to make worm displyaing and moving
-impl VerticalWorm {
+impl RainDrop {
     /// Create new worm with sane random defaults
     pub fn new(
         w: u16,
@@ -72,7 +72,7 @@ impl VerticalWorm {
     ) -> Self {
         // pick random first character
         let body: Vec<char> = vec![*CHARACTERS.choose(rng).unwrap()];
-        let vw_style: VerticalWormStyle = rand::random();
+        let vw_style: RainDropStyle = rand::random();
         let fx: f32 = rng.gen_range(0..w) as f32;
         let fy: f32 = rng.gen_range(0..h / 2) as f32;
         let max_length: u16 = rng.gen_range(MIN_WORM_LENGTH..=(h / 2));
@@ -85,10 +85,11 @@ impl VerticalWorm {
     }
 
     /// Create new worm from values
+    #[inline]
     pub fn from_values(
         worm_id: usize,
         body: Vec<char>,
-        vw_style: VerticalWormStyle,
+        vw_style: RainDropStyle,
         fx: f32,
         fy: f32,
         max_length: u16,
@@ -107,11 +108,27 @@ impl VerticalWorm {
         }
     }
 
-    /// Convert float points into screen coordinates
-    pub fn to_points(&self) -> (u16, u16) {
+    /// Convert float into screen coordinates
+    #[inline]
+    pub fn to_point(&self) -> (u16, u16) {
         let x = self.fx.round() as u16;
         let y = self.fy.round() as u16;
         (x, y)
+    }
+
+    /// Receive vector of coordinates of RainDrop body
+    pub fn to_points_vec(&self) -> Vec<(u16, u16, char)> {
+        let mut points = vec![];
+        let (head_x, head_y) = self.to_point();
+        for (index, character) in self.body.iter().enumerate() {
+            let yy = head_y as i16 - index as i16;
+            if yy >= 0 {
+                points.push((head_x as u16, yy as u16, character.clone()));
+            } else {
+                break;
+            };
+        }
+        points
     }
 
     /// Reset worm to the sane defaults
@@ -191,7 +208,7 @@ impl VerticalWorm {
         if head >= h {
             // come to bottom
             self.finish = true;
-            self.vw_style = VerticalWormStyle::Fading;
+            self.vw_style = RainDropStyle::Fading;
             // truncate vector so head will remain the same but cut the tail
             let new_body_len = self.body.len() as i16 - 1;
             if new_body_len >= 1 {
@@ -212,7 +229,7 @@ mod tests {
     #[test]
     fn create_new_and_reset() {
         let mut rng = rand::thread_rng();
-        let mut new_worm = VerticalWorm::new(100, 100, 1 as usize, &mut rng);
+        let mut new_worm = RainDrop::new(100, 100, 1 as usize, &mut rng);
         assert_eq!(new_worm.body.len(), 1);
         assert_eq!(new_worm.finish, false);
 
@@ -226,35 +243,51 @@ mod tests {
         let mut rng = rand::thread_rng();
         let mut worms = vec![];
         for index in 1..=1000 {
-            worms.push(VerticalWorm::new(100, 100, index, &mut rng));
+            worms.push(RainDrop::new(100, 100, index, &mut rng));
         }
         assert_eq!(worms.len(), 1000);
     }
 
     #[test]
-    fn to_points() {
-        let new_worm = VerticalWorm::from_values(
+    fn to_point() {
+        let new_worm = RainDrop::from_values(
             1,
             vec!['a'],
-            VerticalWormStyle::Gradient,
+            RainDropStyle::Gradient,
             10.3,
             10.8,
             20,
             10,
             false,
         );
-        let (x, y) = new_worm.to_points();
+        let (x, y) = new_worm.to_point();
         assert_eq!(x, 10);
         assert_eq!(y, 11);
     }
 
     #[test]
+    fn to_point_vec() {
+        let new_worm = RainDrop::from_values(
+            1,
+            vec!['a', 'b', 'c'],
+            RainDropStyle::Fading,
+            10.0,
+            10.0,
+            10,
+            8,
+            false,
+        );
+        let points = new_worm.to_points_vec();
+        assert_eq!(points.len(), 3);
+    }
+
+    #[test]
     fn grow() {
         let mut rng = rand::thread_rng();
-        let mut new_worm = VerticalWorm::from_values(
+        let mut new_worm = RainDrop::from_values(
             1,
             vec!['a'],
-            VerticalWormStyle::Front,
+            RainDropStyle::Front,
             10.3,
             10.8,
             20,
@@ -265,10 +298,10 @@ mod tests {
         assert_eq!(new_worm.body.len(), 2);
         assert_eq!(new_worm.body.get(1), Some(&'a'));
 
-        let mut new_worm = VerticalWorm::from_values(
+        let mut new_worm = RainDrop::from_values(
             1,
             vec!['b'],
-            VerticalWormStyle::Middle,
+            RainDropStyle::Middle,
             10.3,
             10.8,
             20,
@@ -281,10 +314,10 @@ mod tests {
         new_worm.grow(11, &mut rng);
         assert_eq!(new_worm.body.len(), 2);
 
-        let mut new_worm = VerticalWorm::from_values(
+        let mut new_worm = RainDrop::from_values(
             1,
             vec!['c'],
-            VerticalWormStyle::Back,
+            RainDropStyle::Back,
             10.3,
             10.8,
             3,
@@ -303,10 +336,10 @@ mod tests {
         let mut rng = rand::thread_rng();
 
         // nothing special worm update
-        let mut new_worm = VerticalWorm::from_values(
+        let mut new_worm = RainDrop::from_values(
             1,
             vec!['c'],
-            VerticalWormStyle::Back,
+            RainDropStyle::Back,
             10.3,
             10.8,
             3,
@@ -318,10 +351,10 @@ mod tests {
         assert_eq!(new_worm.body.len(), 2);
 
         // edge case when body len is 0 (why?)
-        let mut new_worm = VerticalWorm::from_values(
+        let mut new_worm = RainDrop::from_values(
             1,
             vec![],
-            VerticalWormStyle::Middle,
+            RainDropStyle::Middle,
             10.3,
             10.8,
             3,
@@ -333,10 +366,10 @@ mod tests {
         assert_eq!(new_worm.fy, 0.0); // should be reseted
 
         // when tail_y < 0
-        let mut new_worm = VerticalWorm::from_values(
+        let mut new_worm = RainDrop::from_values(
             1,
             vec!['a', 'b', 'c', 'd'],
-            VerticalWormStyle::Fading,
+            RainDropStyle::Fading,
             10.0,
             2.0,
             5,
@@ -348,10 +381,10 @@ mod tests {
         assert_eq!((new_worm.fy - new_worm.body.len() as f32) < 0.0, true);
 
         // when head_y > screen height
-        let mut new_worm = VerticalWorm::from_values(
+        let mut new_worm = RainDrop::from_values(
             1,
             vec!['a', 'b', 'c', 'd'],
-            VerticalWormStyle::Fading,
+            RainDropStyle::Fading,
             10.0,
             30.8,
             5,
@@ -363,10 +396,10 @@ mod tests {
         assert_eq!(new_worm.fy < 30.0, true);
 
         // when head_y > screen height and body len is 2
-        let mut new_worm = VerticalWorm::from_values(
+        let mut new_worm = RainDrop::from_values(
             1,
             vec!['a', 'b'],
-            VerticalWormStyle::Fading,
+            RainDropStyle::Fading,
             10.0,
             30.8,
             5,
