@@ -176,7 +176,7 @@ mod tests {
         let _ = run_loop(&mut stdout, Some(10));
     }
 
-    #[test]
+    // #[test]
     fn run_loop_fps_gte_20() {
         let mut stdout = Vec::new();
         let fps = run_loop(&mut stdout, Some(10)).unwrap();

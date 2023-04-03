@@ -103,8 +103,8 @@ impl DigitalRain {
                         *y as usize,
                         Cell::new(
                             character.clone(),
-                            pick_color(&rain_drop.vw_style, index, &self.gradients),
-                            pick_style(&rain_drop.vw_style, index),
+                            pick_color(&rain_drop.style, index, &self.gradients),
+                            pick_style(&rain_drop.style, index),
                         ),
                     );
                 }
