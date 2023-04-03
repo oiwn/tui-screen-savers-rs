@@ -8,6 +8,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  ALLOWED_CLIPPY_WARNINGS: 5
+
 
 jobs:
   build_and_test:
@@ -29,3 +31,14 @@ jobs:
 
     - name: Run Clippy
       run: cargo clippy -- -D warnings
+
+    - name: Run Clippy with allowed warnings
+      run: |
+        warning_count=$(cargo clippy -- --color never 2>&1 | grep 'warning:' | wc -l)
+        if [ $warning_count -gt $ALLOWED_CLIPPY_WARNINGS ]; then
+          echo "Too many Clippy warnings: $warning_count (allowed: $ALLOWED_CLIPPY_WARNINGS)"
+          exit 1
+        else
+          echo "Clippy warnings are within the allowed limit: $warning_count (allowed: $ALLOWED_CLIPPY_WARNINGS)"
+        fi
+

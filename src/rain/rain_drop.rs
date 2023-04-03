@@ -119,7 +119,7 @@ impl RainDrop {
         for (index, character) in self.body.iter().enumerate() {
             let yy = head_y as i16 - index as i16;
             if yy >= 1 {
-                points.push((head_x as u16, yy as u16, character.clone()));
+                points.push((head_x, yy as u16, *character));
             } else {
                 break;
             };
@@ -130,7 +130,7 @@ impl RainDrop {
     /// Reset worm to the sane defaults
     fn reset(&mut self, w: u16, h: u16, rng: &mut rand::prelude::ThreadRng) {
         self.body.clear();
-        self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
+        self.body.insert(0, *CHARACTERS.choose(rng).unwrap());
         self.style = rand::random();
         self.fy = 1.0;
         self.fx = rng.gen_range(1..=w) as f32;
@@ -146,18 +146,18 @@ impl RainDrop {
     /// Grow up matrix worm characters array
     fn grow(&mut self, head_y: u16, rng: &mut rand::prelude::ThreadRng) {
         match self.grow_condition() {
-            true => self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone()),
+            true => self.body.insert(0, *CHARACTERS.choose(rng).unwrap()),
             false => {
                 // if position on screen not changed, do not grow body vector
                 let delta: i16 = head_y as i16 - self.fy.round() as i16;
                 if delta > 0 {
-                    self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
+                    self.body.insert(0, *CHARACTERS.choose(rng).unwrap());
                 }
             }
         };
 
-        if self.body.len() > self.max_length as usize {
-            self.body.truncate(self.max_length as usize);
+        if self.body.len() > self.max_length {
+            self.body.truncate(self.max_length);
         }
     }
 
@@ -178,7 +178,7 @@ impl RainDrop {
         rng: &mut rand::prelude::ThreadRng,
     ) {
         // NOTE: looks like guard, but why i even need it here?
-        if self.body.len() == 0 {
+        if self.body.is_empty() {
             self.reset(w, h, rng);
             return;
         }

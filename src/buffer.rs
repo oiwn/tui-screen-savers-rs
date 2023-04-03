@@ -10,6 +10,7 @@ pub struct Cell {
 /// Buffer implementation, coordinates unlike in crossterm started from [0, 0]
 pub struct Buffer {
     width: usize,
+    #[allow(dead_code)]
     height: usize,
     buffer: Vec<Cell>,
 }
@@ -49,6 +50,7 @@ impl Buffer {
         self.buffer[index] = cell;
     }
 
+    #[allow(dead_code)]
     pub fn get_rect(&self) -> (usize, usize) {
         (self.width, self.height)
     }

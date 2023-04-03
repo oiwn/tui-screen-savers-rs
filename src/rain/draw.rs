@@ -33,9 +33,8 @@ where
         let queue = matrix.get_diff();
         for item in queue.iter() {
             let (x, y, cell) = item;
-            assert_eq!(
-                *x < width as usize && *y < height as usize && *x >= 1 && *y >= 1,
-                true
+            assert!(
+                *x < width as usize && *y < height as usize && *x >= 1 && *y >= 1
             );
             stdout.queue(cursor::MoveTo(*x as u16, *y as u16))?;
             stdout.queue(style::PrintStyledContent(
@@ -61,49 +60,37 @@ where
 }
 
 pub fn pick_style(vw_style: &RainDropStyle, pos: usize) -> style::Attribute {
-    let drop_style = match vw_style {
+    match vw_style {
         RainDropStyle::Front => style::Attribute::Bold,
         RainDropStyle::Middle => match pos {
             0..=4 => style::Attribute::Bold,
             _ => style::Attribute::NormalIntensity,
         },
         _ => style::Attribute::NormalIntensity,
-    };
-    // match pos {
-    //     0 => style::Attribute::NormalIntensity,
-    //     _ => style::Attribute::Bold,
-    // }
-    // style::Attribute::NormalIntensity
-    drop_style
+    }
 }
 
 pub fn pick_color(
     vw_style: &RainDropStyle,
     pos: usize,
-    gradients: &Vec<Vec<gradient::Color>>,
+    gradients: &[Vec<gradient::Color>],
 ) -> style::Color {
-    let drop_color = match vw_style {
+    match vw_style {
         RainDropStyle::Gradient => match pos {
             0 => style::Color::White,
-            _ => {
-                let color = style::Color::Rgb {
-                    r: 0,
-                    g: 255 - (pos as u16 * 12).clamp(10, 256) as u8,
-                    b: 0,
-                };
-                color
-            }
+            _ => style::Color::Rgb {
+                r: 0,
+                g: 255 - (pos as u16 * 12).clamp(10, 256) as u8,
+                b: 0,
+            },
         },
         RainDropStyle::Front => match pos {
             0 => style::Color::White,
-            _ => {
-                let color = style::Color::Rgb {
-                    r: 0,
-                    g: 255 - (pos.pow(2) as u16).clamp(10, 256) as u8,
-                    b: 0,
-                };
-                color
-            }
+            _ => style::Color::Rgb {
+                r: 0,
+                g: 255 - (pos.pow(2) as u16).clamp(10, 256) as u8,
+                b: 0,
+            },
         },
         RainDropStyle::Back => {
             let color = gradients[2][pos];
@@ -114,57 +101,8 @@ pub fn pick_color(
             }
         }
         _ => style::Color::DarkGrey,
-    };
-    drop_color
+    }
 }
-
-/* TODO: Style chars, need to add style into Cell along with color information
-pub fn pick_style(
-    vw_style: &RainDropStyle,
-    pos: usize,
-    ch: &char,
-) -> style::PrintStyledContent<char> {
-    let worm_style = match vw_style {
-        RainDropStyle::Front => match pos {
-            0 => style::PrintStyledContent(ch.white().bold()),
-            1 => style::PrintStyledContent(ch.white()),
-            2..=4 => style::PrintStyledContent(ch.green()),
-            5..=7 => style::PrintStyledContent(ch.dark_green()),
-            8..=12 => style::PrintStyledContent(ch.grey()),
-            _ => style::PrintStyledContent(ch.dark_grey()),
-        },
-        RainDropStyle::Middle => match pos {
-            0 => style::PrintStyledContent(ch.white()),
-            1..=3 => style::PrintStyledContent(ch.green()),
-            4..=5 => style::PrintStyledContent(ch.dark_green()),
-            6..=10 => style::PrintStyledContent(ch.grey()),
-            _ => style::PrintStyledContent(ch.dark_grey()),
-        },
-        RainDropStyle::Back => match pos {
-            0 => style::PrintStyledContent(ch.green()),
-            1..=3 => style::PrintStyledContent(ch.dark_green()),
-            4..=5 => style::PrintStyledContent(ch.grey()),
-            _ => style::PrintStyledContent(ch.dark_grey()),
-        },
-        RainDropStyle::Fading => match pos {
-            0..=4 => style::PrintStyledContent(ch.grey()),
-            _ => style::PrintStyledContent(ch.dark_grey()),
-        },
-        RainDropStyle::Gradient => match pos {
-            0 => style::PrintStyledContent(ch.white().bold()),
-            _ => {
-                let color = style::Color::Rgb {
-                    r: 0,
-                    g: 255 - (pos as u16 * 12).clamp(0, 255) as u8,
-                    b: 0,
-                };
-                style::PrintStyledContent(ch.with(color))
-            }
-        },
-    };
-    worm_style
-}
-*/
 
 #[cfg(test)]
 mod tests {
@@ -178,6 +116,7 @@ mod tests {
 
     // #[test]
     fn run_loop_fps_gte_20() {
+        // NOTE: this test failed on github CI pipeline
         let mut stdout = Vec::new();
         let fps = run_loop(&mut stdout, Some(10)).unwrap();
         assert_eq!(fps > 20.0, true);
