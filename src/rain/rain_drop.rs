@@ -251,7 +251,7 @@ mod tests {
         assert_eq!(new_worm.finish, false);
 
         new_worm.reset(100, 100, &mut rng);
-        assert_eq!(new_worm.fy, 0.0);
+        assert_eq!(new_worm.fy, 1.0);
         assert_eq!(new_worm.body.len(), 1);
     }
 
@@ -387,7 +387,7 @@ mod tests {
         );
         new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
         assert_eq!(new_worm.body.len(), 1);
-        assert_eq!(new_worm.fy, 0.0); // should be reseted
+        assert_eq!(new_worm.fy, 1.0); // should be reseted
 
         // when tail_y < 0
         let mut new_worm = RainDrop::from_values(
@@ -418,8 +418,8 @@ mod tests {
             false,
         );
         new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
-        assert_eq!(new_worm.body.len(), 3);
-        assert_eq!(new_worm.fy < 30.0, true);
+        assert_eq!(new_worm.body.len(), 4);
+        assert_eq!(new_worm.fy > 30.0, true);
 
         // when head_y > screen height and body len is 2
         let mut new_worm = RainDrop::from_values(
@@ -427,16 +427,16 @@ mod tests {
             vec!['a', 'b'],
             RainDropStyle::Fading,
             10.0,
-            30.8,
+            29.0,
             5,
             2,
             0,
             false,
         );
         new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
-        assert_eq!(new_worm.body.len(), 1);
-        assert_eq!(new_worm.fy, 29.0);
+        assert_eq!(new_worm.body.len(), 2);
+        assert_eq!(new_worm.fy, 31.0);
         new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
-        assert_eq!(new_worm.fy, 0.0); // should be reseted there
+        assert_eq!(new_worm.fy, 1.0); // should be reseted there
     }
 }
