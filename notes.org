@@ -10,20 +10,20 @@
 ** DONE calculate average fps, print it after execution
 ** DONE raname Matrix to DigitalRain
 ** DONE rename charworm into raindrops
+** DONE remove ndarray from digital rain
+** DONE rain drop should return list of characters with colors
+** DONE even better gradient (2 steps from white to dark gray)
+** DONE move "map" (with position of worms with worm_id) into separate module,
+map completely removed
 ** TODO zbuffer for different worm positions
-** TODO to fade worms can assume max_length is initial worm length
-can be used to calculate color from pos
-** TODO remove ndarray from digital rain
-** rain drop should return list of characters with colors
 ** TODO keep fps stable and above some value - 20, 30, 60?
 ** TODO make worms fade away when they reach the bottom
-** TODO even better gradient (2 steps from white to dark gray)
 ** TODO store options as MatrixOptions
-** TODO move "map" (with position of worms with worm_id) into separate module
 ** TODO update screen size (h/w) during execution (currently doesn't track it)
+** TODO inconsistency between buffer.rs coordinates and crossterm screen started from 1, 1
 
 * After main Features
-** github CI/CD pipeline
+** DONE github CI/CD pipeline
 ** DONE need tests
 - [X] test VerticalWorm
 - [X] decouple drawing Matrix from calculations

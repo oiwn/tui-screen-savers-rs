@@ -1,7 +1,7 @@
 use crate::buffer::{Buffer, Cell};
-use crate::rain::draw::pick_color;
-use crate::rain::rain_drop::{RainDrop, RainDropStyle};
-// use crossterm::style;
+use crate::rain::draw::{pick_color, pick_style};
+use crate::rain::gradient;
+use crate::rain::rain_drop::RainDrop;
 
 use rand::{self, Rng};
 use std::time::Duration;
@@ -11,9 +11,9 @@ static MAX_WORMS: usize = 200;
 pub struct DigitalRain {
     screen_width: u16,
     screen_height: u16,
-    pub rain_drops: Vec<RainDrop>,
-    pub buffer: Buffer,
-    map: ndarray::Array2<usize>,
+    gradients: Vec<Vec<gradient::Color>>,
+    rain_drops: Vec<RainDrop>,
+    buffer: Buffer,
     rng: rand::prelude::ThreadRng,
 }
 
@@ -27,49 +27,87 @@ impl DigitalRain {
             rain_drops.push(RainDrop::new(width, height, rain_drop_id, &mut rng));
         }
 
-        let prev_map: ndarray::Array2<usize> =
-            ndarray::Array::zeros((width as usize, height as usize));
-        let mut map: ndarray::Array2<usize> =
-            ndarray::Array::zeros((width as usize, height as usize));
-
-        // fill current buffer
-        // worm with lower y coordinate have priority
-        rain_drops.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
-        for rain_drop in rain_drops.iter() {
-            let (x, y) = rain_drop.to_point();
-            for pos in 0..rain_drop.body.len() {
-                let yy = y as i16 - pos as i16;
-                if yy >= 0 {
-                    map[[x as usize, yy as usize]] = rain_drop.worm_id;
-                }
-            }
-        }
+        // fill gradients
+        let mut gradients = vec![];
+        gradients.push(gradient::two_step_color_gradient(
+            gradient::Color {
+                r: 255,
+                g: 255,
+                b: 255,
+            },
+            gradient::Color { r: 0, g: 255, b: 0 },
+            gradient::Color {
+                r: 10,
+                g: 10,
+                b: 10,
+            },
+            4,
+            height as usize / 2,
+        ));
+        gradients.push(gradient::two_step_color_gradient(
+            gradient::Color {
+                r: 200,
+                g: 200,
+                b: 200,
+            },
+            gradient::Color { r: 0, g: 250, b: 0 },
+            gradient::Color {
+                r: 10,
+                g: 10,
+                b: 10,
+            },
+            6,
+            height as usize / 2,
+        ));
+        gradients.push(gradient::two_step_color_gradient(
+            gradient::Color {
+                r: 200,
+                g: 200,
+                b: 200,
+            },
+            gradient::Color { r: 0, g: 200, b: 0 },
+            gradient::Color {
+                r: 10,
+                g: 10,
+                b: 10,
+            },
+            4,
+            height as usize / 2,
+        ));
 
         Self {
             screen_width: width,
             screen_height: height,
+            gradients,
             rain_drops,
             buffer,
-            map,
             rng,
         }
     }
 
+    /// Calculate difference between current frame and previous frame
     pub fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
         let mut curr_buffer =
             Buffer::new(self.screen_width as usize, self.screen_height as usize);
 
         // fill current buffer
+        // first draw drops with bigger fy
         self.rain_drops
             .sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
-        for rain_drop in self.rain_drops.iter() {
+        for rain_drop in self.rain_drops.iter().rev() {
             let points = rain_drop.to_points_vec();
             for (index, (x, y, character)) in points.iter().enumerate() {
-                curr_buffer.set(
-                    *x as usize,
-                    *y as usize,
-                    Cell::new(character.clone(), pick_color(index)),
-                );
+                if *x < self.screen_width && *y < self.screen_height {
+                    curr_buffer.set(
+                        *x as usize,
+                        *y as usize,
+                        Cell::new(
+                            character.clone(),
+                            pick_color(&rain_drop.vw_style, index, &self.gradients),
+                            pick_style(&rain_drop.vw_style, index),
+                        ),
+                    );
+                }
             }
         }
 
@@ -94,10 +132,8 @@ impl DigitalRain {
         }
     }
 
+    /// Update each rain drop position
     pub fn update(&mut self) {
-        // start updating/drawing from lower worms
-        // self.worms.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
-        // self.worms.reverse();
         for rain_drop in self.rain_drops.iter_mut() {
             rain_drop.update(
                 self.screen_width,
@@ -108,21 +144,6 @@ impl DigitalRain {
         }
 
         self.add_one();
-
-        // fill current buffer
-        // worm with lower y coordinate have priority
-        self.map.fill(0);
-        self.rain_drops
-            .sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
-        for rain_drop in self.rain_drops.iter() {
-            let (x, y) = rain_drop.to_point();
-            for pos in 0..rain_drop.body.len() {
-                let yy = y as i16 - pos as i16;
-                if yy >= 0 {
-                    self.map[[x as usize, yy as usize]] = rain_drop.worm_id;
-                }
-            }
-        }
     }
 }
 
@@ -134,7 +155,6 @@ mod tests {
     fn create_new() {
         let m = DigitalRain::new(30, 30, 20);
         assert_eq!(m.rain_drops.len(), 20);
-        assert_eq!(m.map.shape(), &[30, 30]);
     }
 
     #[test]
