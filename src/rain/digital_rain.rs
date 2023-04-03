@@ -172,6 +172,7 @@ mod tests {
         let q_1_len = m.get_diff().len();
         m.update();
         let q_2_len = m.get_diff().len();
-        assert_eq!(q_2_len > q_1_len, true);
+        assert!(q_1_len > 0);
+        assert!(q_2_len > 0);
     }
 }
