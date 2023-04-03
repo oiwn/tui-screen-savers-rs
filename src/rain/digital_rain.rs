@@ -28,52 +28,53 @@ impl DigitalRain {
         }
 
         // fill gradients
-        let mut gradients = vec![];
-        gradients.push(gradient::two_step_color_gradient(
-            gradient::Color {
-                r: 255,
-                g: 255,
-                b: 255,
-            },
-            gradient::Color { r: 0, g: 255, b: 0 },
-            gradient::Color {
-                r: 10,
-                g: 10,
-                b: 10,
-            },
-            4,
-            height as usize / 2,
-        ));
-        gradients.push(gradient::two_step_color_gradient(
-            gradient::Color {
-                r: 200,
-                g: 200,
-                b: 200,
-            },
-            gradient::Color { r: 0, g: 250, b: 0 },
-            gradient::Color {
-                r: 10,
-                g: 10,
-                b: 10,
-            },
-            6,
-            height as usize / 2,
-        ));
-        gradients.push(gradient::two_step_color_gradient(
-            gradient::Color {
-                r: 200,
-                g: 200,
-                b: 200,
-            },
-            gradient::Color { r: 0, g: 200, b: 0 },
-            gradient::Color {
-                r: 10,
-                g: 10,
-                b: 10,
-            },
-            4,
-            height as usize / 2,
-        ));
+        let gradients = vec![
+            gradient::two_step_color_gradient(
+                gradient::Color {
+                    r: 255,
+                    g: 255,
+                    b: 255,
+                },
+                gradient::Color { r: 0, g: 255, b: 0 },
+                gradient::Color {
+                    r: 10,
+                    g: 10,
+                    b: 10,
+                },
+                4,
+                height as usize / 2,
+            ),
+            gradient::two_step_color_gradient(
+                gradient::Color {
+                    r: 200,
+                    g: 200,
+                    b: 200,
+                },
+                gradient::Color { r: 0, g: 250, b: 0 },
+                gradient::Color {
+                    r: 10,
+                    g: 10,
+                    b: 10,
+                },
+                6,
+                height as usize / 2,
+            ),
+            gradient::two_step_color_gradient(
+                gradient::Color {
+                    r: 200,
+                    g: 200,
+                    b: 200,
+                },
+                gradient::Color { r: 0, g: 200, b: 0 },
+                gradient::Color {
+                    r: 10,
+                    g: 10,
+                    b: 10,
+                },
+                4,
+                height as usize / 2,
+            ),
+        ];
 
         Self {
             screen_width: width,
