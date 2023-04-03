@@ -7,11 +7,12 @@ use rand::{
 };
 use std::{collections::HashMap, time::Duration};
 
+/// Characters in form of hashmap with label as key
 static CHARACTERS_MAP: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
     let mut m = HashMap::new();
     m.insert("digits", "012345789");
     m.insert("punctuation", r#":・."=*+-<>"#);
-    // m.insert("kanji", "日"); // Somehow it causing blinks
+    // m.insert("kanji", "日"); // Somehow it causing blinks - too wide
     m.insert("katakana", "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ");
     m.insert("other", "¦çﾘｸ");
     m
@@ -38,24 +39,23 @@ pub enum RainDropStyle {
 }
 
 pub struct RainDrop {
-    pub worm_id: usize,
+    pub drop_id: usize,
     pub body: Vec<char>,
-    pub vw_style: RainDropStyle,
+    pub style: RainDropStyle,
     pub fx: f32,
     pub fy: f32,
-    pub max_length: u16,
-    pub finish: bool,
+    pub max_length: usize,
     pub speed: u16,
 }
 
 impl Distribution<RainDropStyle> for Standard {
     /// Choose from range
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> RainDropStyle {
-        match rng.gen_range(0..=6) {
-            0 => RainDropStyle::Front,
-            1 => RainDropStyle::Middle,
-            2 => RainDropStyle::Back,
-            3 => RainDropStyle::Fading,
+        match rng.gen_range(1..=100) {
+            1..=10 => RainDropStyle::Front,
+            11..=20 => RainDropStyle::Middle,
+            21..=40 => RainDropStyle::Back,
+            41..=50 => RainDropStyle::Fading,
             _ => RainDropStyle::Gradient,
         }
     }
@@ -67,44 +67,40 @@ impl RainDrop {
     pub fn new(
         w: u16,
         h: u16,
-        worm_id: usize,
+        drop_id: usize,
         rng: &mut rand::prelude::ThreadRng,
     ) -> Self {
         // pick random first character
         let body: Vec<char> = vec![*CHARACTERS.choose(rng).unwrap()];
-        let vw_style: RainDropStyle = rand::random();
-        let fx: f32 = rng.gen_range(0..w) as f32;
-        let fy: f32 = rng.gen_range(0..h / 2) as f32;
-        let max_length: u16 = rng.gen_range(MIN_WORM_LENGTH..=(h / 2));
-        let speed: u16 = rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1);
-        let finish = false;
+        let style: RainDropStyle = rand::random();
+        let fx: f32 = rng.gen_range(1..=w) as f32;
+        let fy: f32 = rng.gen_range(1..=h / 2) as f32;
+        let max_length: usize = rng.gen_range(MIN_WORM_LENGTH..=(h / 2)) as usize;
 
-        Self::from_values(
-            worm_id, body, vw_style, fx, fy, max_length, speed, finish,
-        )
+        let speed: u16 = rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1);
+
+        Self::from_values(drop_id, body, style, fx, fy, max_length, speed)
     }
 
     /// Create new worm from values
-    #[inline]
+    #[inline(always)]
     pub fn from_values(
-        worm_id: usize,
+        drop_id: usize,
         body: Vec<char>,
-        vw_style: RainDropStyle,
+        style: RainDropStyle,
         fx: f32,
         fy: f32,
-        max_length: u16,
+        max_length: usize,
         speed: u16,
-        finish: bool,
     ) -> Self {
         Self {
-            worm_id,
+            drop_id,
             body,
-            vw_style,
+            style,
             fx,
             fy,
             max_length,
             speed,
-            finish,
         }
     }
 
@@ -122,8 +118,8 @@ impl RainDrop {
         let (head_x, head_y) = self.to_point();
         for (index, character) in self.body.iter().enumerate() {
             let yy = head_y as i16 - index as i16;
-            if yy >= 0 {
-                points.push((head_x as u16, yy as u16, character.clone()));
+            if yy >= 1 {
+                points.push((head_x, yy as u16, *character));
             } else {
                 break;
             };
@@ -134,13 +130,12 @@ impl RainDrop {
     /// Reset worm to the sane defaults
     fn reset(&mut self, w: u16, h: u16, rng: &mut rand::prelude::ThreadRng) {
         self.body.clear();
-        self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
-        self.vw_style = rand::random();
-        self.fy = 0.0;
-        self.fx = rng.gen_range(0..w) as f32;
+        self.body.insert(0, *CHARACTERS.choose(rng).unwrap());
+        self.style = rand::random();
+        self.fy = 1.0;
+        self.fx = rng.gen_range(1..=w) as f32;
         self.speed = rng.gen_range(SPEED_RANGE.0..=SPEED_RANGE.1);
-        self.finish = false;
-        self.max_length = rng.gen_range(MIN_WORM_LENGTH..=(h / 2));
+        self.max_length = rng.gen_range(MIN_WORM_LENGTH..=(h / 2)) as usize;
     }
 
     /// Grow condition
@@ -149,23 +144,32 @@ impl RainDrop {
     }
 
     /// Grow up matrix worm characters array
-    fn grow(&mut self, head: u16, rng: &mut rand::prelude::ThreadRng) {
+    fn grow(&mut self, head_y: u16, rng: &mut rand::prelude::ThreadRng) {
         match self.grow_condition() {
-            true => self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone()),
+            true => self.body.insert(0, *CHARACTERS.choose(rng).unwrap()),
             false => {
                 // if position on screen not changed, do not grow body vector
-                let delta: i16 = head as i16 - self.fy.round() as i16;
+                let delta: i16 = head_y as i16 - self.fy.round() as i16;
                 if delta > 0 {
-                    self.body.insert(0, CHARACTERS.choose(rng).unwrap().clone());
+                    self.body.insert(0, *CHARACTERS.choose(rng).unwrap());
                 }
             }
         };
 
-        if self.body.len() > self.max_length as usize {
-            self.body.truncate(self.max_length as usize);
+        if self.body.len() > self.max_length {
+            self.body.truncate(self.max_length);
         }
     }
 
+    /// Update rain drops to change position/grow etc
+    /// there can be 4 cases:
+    /// rain drop vector not yet fully come from top
+    /// rain drop vector somewhere in the middle of the scren
+    /// rain drop vector reach bottom and need to fade out
+    /// raid drop vector tail out of screen rect visibility
+    ///
+    /// Note that rain drop coordiantes can be outside bounds defined
+    /// by screen width and height, this should be handled during draw process
     pub fn update(
         &mut self,
         w: u16,
@@ -173,13 +177,8 @@ impl RainDrop {
         dt: Duration,
         rng: &mut rand::prelude::ThreadRng,
     ) {
-        // there can be 3 cases:
-        // worm vector not yet fully come from top
-        // worm vector somewhere in the middle of the scren
-        // worm vector reach bottom and need to fade out
-
         // NOTE: looks like guard, but why i even need it here?
-        if self.body.len() == 0 {
+        if self.body.is_empty() {
             self.reset(w, h, rng);
             return;
         }
@@ -188,37 +187,34 @@ impl RainDrop {
         let fy = self.fy + (self.speed as f32 * dt.as_millis() as f32) / 1000.0;
 
         // calculate head and tail y coordinate
-        let head = fy.round() as u16;
-        let tail = fy.round() as i16 - self.body.len() as i16;
+        let head_y = fy.round() as u16;
+        let tail_y = fy.round() as i16 - self.body.len() as i16;
 
-        if tail <= 0 {
+        if tail_y <= 1 {
             // not fully come out from top
-            self.grow(head, rng);
+            self.grow(head_y, rng);
             self.fy = fy;
             return;
         };
 
-        if (head < h) && (tail > 0) {
+        if (head_y < h) && (tail_y > 1) {
             // somewhere in the middle
-            self.grow(head, rng);
+            self.grow(head_y, rng);
             self.fy = fy;
             return;
         };
 
-        if head >= h {
+        if (head_y >= h) && (tail_y < h as i16) {
             // come to bottom
-            self.finish = true;
-            self.vw_style = RainDropStyle::Fading;
-            // truncate vector so head will remain the same but cut the tail
-            let new_body_len = self.body.len() as i16 - 1;
-            if new_body_len >= 1 {
-                self.max_length -= 1;
-                self.body.truncate(new_body_len as usize);
-                self.fy = (h - 1) as f32;
-            } else {
-                self.reset(w, h, rng);
-            }
+            // self.drop_style = RainDropStyle::Fading;
+            self.fy = fy;
+            return;
         };
+
+        // NOTE: need this to reset
+        if tail_y as u16 >= h {
+            self.reset(w, h, rng);
+        }
     }
 }
 
@@ -231,10 +227,10 @@ mod tests {
         let mut rng = rand::thread_rng();
         let mut new_worm = RainDrop::new(100, 100, 1 as usize, &mut rng);
         assert_eq!(new_worm.body.len(), 1);
-        assert_eq!(new_worm.finish, false);
+        assert_eq!(new_worm.speed > 0, true);
 
         new_worm.reset(100, 100, &mut rng);
-        assert_eq!(new_worm.fy, 0.0);
+        assert_eq!(new_worm.fy, 1.0);
         assert_eq!(new_worm.body.len(), 1);
     }
 
@@ -258,7 +254,6 @@ mod tests {
             10.8,
             20,
             10,
-            false,
         );
         let (x, y) = new_worm.to_point();
         assert_eq!(x, 10);
@@ -275,7 +270,6 @@ mod tests {
             10.0,
             10,
             8,
-            false,
         );
         let points = new_worm.to_points_vec();
         assert_eq!(points.len(), 3);
@@ -292,7 +286,6 @@ mod tests {
             10.8,
             20,
             10,
-            false,
         );
         new_worm.grow(10, &mut rng);
         assert_eq!(new_worm.body.len(), 2);
@@ -306,7 +299,6 @@ mod tests {
             10.8,
             20,
             4,
-            false,
         );
         new_worm.grow(12, &mut rng);
         assert_eq!(new_worm.body.len(), 2);
@@ -322,7 +314,6 @@ mod tests {
             10.8,
             3,
             4,
-            false,
         );
         new_worm.grow(12, &mut rng);
         new_worm.grow(12, &mut rng);
@@ -344,7 +335,6 @@ mod tests {
             10.8,
             3,
             8,
-            false,
         );
         new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
         assert_eq!(new_worm.fy.round() as u16, 19);
@@ -359,11 +349,10 @@ mod tests {
             10.8,
             3,
             8,
-            false,
         );
         new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
         assert_eq!(new_worm.body.len(), 1);
-        assert_eq!(new_worm.fy, 0.0); // should be reseted
+        assert_eq!(new_worm.fy, 1.0); // should be out of the h bounds
 
         // when tail_y < 0
         let mut new_worm = RainDrop::from_values(
@@ -374,7 +363,6 @@ mod tests {
             2.0,
             5,
             2,
-            false,
         );
         new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
         assert_eq!(new_worm.body.len(), 5);
@@ -389,11 +377,10 @@ mod tests {
             30.8,
             5,
             2,
-            false,
         );
         new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
-        assert_eq!(new_worm.body.len(), 3);
-        assert_eq!(new_worm.fy < 30.0, true);
+        assert_eq!(new_worm.body.len(), 4);
+        assert_eq!(new_worm.fy > 30.0, true);
 
         // when head_y > screen height and body len is 2
         let mut new_worm = RainDrop::from_values(
@@ -401,15 +388,14 @@ mod tests {
             vec!['a', 'b'],
             RainDropStyle::Fading,
             10.0,
-            30.8,
+            29.0,
             5,
             2,
-            false,
         );
         new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
-        assert_eq!(new_worm.body.len(), 1);
-        assert_eq!(new_worm.fy, 29.0);
+        assert_eq!(new_worm.body.len(), 2);
+        assert_eq!(new_worm.fy, 31.0);
         new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
-        assert_eq!(new_worm.fy, 0.0); // should be reseted there
+        assert_eq!(new_worm.fy, 1.0); // should be reseted there
     }
 }

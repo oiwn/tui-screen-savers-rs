@@ -3,6 +3,7 @@ use crossterm::{self, cursor, execute, terminal};
 use std::{io, process};
 
 mod buffer;
+mod common;
 mod rain;
 
 const HELP: &str = "\

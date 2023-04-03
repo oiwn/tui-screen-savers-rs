@@ -4,18 +4,24 @@ use crossterm::style;
 pub struct Cell {
     pub symbol: char,
     pub color: style::Color,
+    pub attr: style::Attribute,
 }
 
-// #[derive(Clone)]
+/// Buffer implementation, coordinates unlike in crossterm started from [0, 0]
 pub struct Buffer {
     width: usize,
+    #[allow(dead_code)]
     height: usize,
     buffer: Vec<Cell>,
 }
 
 impl Cell {
-    pub fn new(symbol: char, color: style::Color) -> Self {
-        Self { symbol, color }
+    pub fn new(symbol: char, color: style::Color, attr: style::Attribute) -> Self {
+        Self {
+            symbol,
+            color,
+            attr,
+        }
     }
 }
 
@@ -24,6 +30,7 @@ impl Default for Cell {
         Self {
             symbol: ' ',
             color: style::Color::Black,
+            attr: style::Attribute::Reset,
         }
     }
 }
@@ -41,6 +48,11 @@ impl Buffer {
     pub fn set(&mut self, x: usize, y: usize, cell: Cell) {
         let index = self.index_of(x, y);
         self.buffer[index] = cell;
+    }
+
+    #[allow(dead_code)]
+    pub fn get_rect(&self) -> (usize, usize) {
+        (self.width, self.height)
     }
 
     pub fn index_of(&self, x: usize, y: usize) -> usize {
@@ -62,8 +74,6 @@ impl Buffer {
         {
             if curr != prev {
                 let (x, y) = self.pos_of(i);
-                // let x = i % width;
-                // let y = i / width;
                 updates.push((x, y, next_buffer[i]));
             }
         }
@@ -81,23 +91,32 @@ mod tests {
         let buf = Buffer::new(20, 10);
         assert_eq!(buf.width, 20);
         assert_eq!(buf.height, 10);
+        assert_eq!(buf.get_rect(), (20, 10));
     }
 
     #[test]
     fn diff() {
         let mut buf = Buffer::new(3, 3);
         let point = buf.index_of(0, 0);
-        buf.buffer[point] = Cell::new('b', style::Color::Green);
+        buf.buffer[point] =
+            Cell::new('b', style::Color::Green, style::Attribute::NormalIntensity);
         let point = buf.index_of(0, 1);
-        buf.buffer[point] = Cell::new('a', style::Color::Green);
+        buf.buffer[point] =
+            Cell::new('a', style::Color::Green, style::Attribute::NormalIntensity);
 
         let mut next_buf = Buffer::new(3, 3);
         let point = buf.index_of(0, 0);
-        next_buf.buffer[point] = Cell::new('c', style::Color::DarkGreen);
+        next_buf.buffer[point] = Cell::new(
+            'c',
+            style::Color::DarkGreen,
+            style::Attribute::NormalIntensity,
+        );
         let point = buf.index_of(0, 1);
-        next_buf.buffer[point] = Cell::new('b', style::Color::Green);
+        next_buf.buffer[point] =
+            Cell::new('b', style::Color::Green, style::Attribute::NormalIntensity);
         let point = buf.index_of(0, 2);
-        next_buf.buffer[point] = Cell::new('a', style::Color::Green);
+        next_buf.buffer[point] =
+            Cell::new('a', style::Color::Green, style::Attribute::NormalIntensity);
 
         let diff = buf.diff(&next_buf);
         assert_eq!(diff.len(), 3);

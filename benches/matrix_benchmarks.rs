@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use matrix_rs::matrix::{digital_rain, draw, rain_drop};
+use matrix_rs::rain::{digital_rain, draw, rain_drop};
 use rand;
 use std::time::Duration;
 
