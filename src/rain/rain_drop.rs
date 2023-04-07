@@ -71,7 +71,7 @@ impl RainDrop {
         let body: Vec<char> = vec![*CHARACTERS.choose(rng).unwrap()];
         let style: RainDropStyle = rand::random();
         let fx: u16 = rng.gen_range(0..options.get_width());
-        let fy: f32 = rng.gen_range(0..options.get_height() / 2) as f32;
+        let fy: f32 = rng.gen_range(0..options.get_height() / 3) as f32;
         let max_length: usize =
             rng.gen_range(0..=(2 * options.get_height() / 3)) as usize;
 
@@ -135,7 +135,7 @@ impl RainDrop {
         self.body.clear();
         self.body.insert(0, *CHARACTERS.choose(rng).unwrap());
         self.style = rand::random();
-        self.fy = 1.0;
+        self.fy = 0.0;
         self.fx = rng.gen_range(0..options.get_width());
         self.speed =
             rng.gen_range(options.get_min_speed()..=options.get_max_speed());
@@ -227,33 +227,41 @@ impl RainDrop {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{super::rain_options::DigitalRainOptionsBuilder, *};
+
+    fn get_sane_options() -> DigitalRainOptions {
+        DigitalRainOptionsBuilder::new((100, 100))
+            .drops_range((20, 30))
+            .speed_range((10, 20))
+            .build()
+    }
 
     #[test]
     fn create_new_and_reset() {
         let mut rng = rand::thread_rng();
-        let mut new_worm = RainDrop::new(100, 100, 1 as usize, &mut rng);
-        assert_eq!(new_worm.body.len(), 1);
-        assert_eq!(new_worm.speed > 0, true);
+        let mut new_drop = RainDrop::new(&get_sane_options(), 1, &mut rng);
+        assert_eq!(new_drop.body.len(), 1);
+        assert!(new_drop.speed > 10);
 
-        new_worm.reset(100, 100, &mut rng);
-        assert_eq!(new_worm.fy, 1.0);
-        assert_eq!(new_worm.body.len(), 1);
+        new_drop.reset(&get_sane_options(), &mut rng);
+        assert_eq!(new_drop.fy, 0.0);
+        assert_eq!(new_drop.drop_id, 1);
+        assert_eq!(new_drop.body.len(), 1);
     }
 
     #[test]
-    fn generate_a_lot_of_worms() {
+    fn generate_a_lot_of_drops() {
         let mut rng = rand::thread_rng();
-        let mut worms = vec![];
+        let mut drops = vec![];
         for index in 1..=1000 {
-            worms.push(RainDrop::new(100, 100, index, &mut rng));
+            drops.push(RainDrop::new(&get_sane_options(), index, &mut rng));
         }
-        assert_eq!(worms.len(), 1000);
+        assert_eq!(drops.len(), 1000);
     }
 
     #[test]
     fn to_point() {
-        let new_worm = RainDrop::from_values(
+        let new_drop = RainDrop::from_values(
             1,
             vec!['a'],
             RainDropStyle::Gradient,
@@ -262,14 +270,14 @@ mod tests {
             20,
             10,
         );
-        let (x, y) = new_worm.to_point();
+        let (x, y) = new_drop.to_point();
         assert_eq!(x, 10);
         assert_eq!(y, 11);
     }
 
     #[test]
     fn to_point_vec() {
-        let new_worm = RainDrop::from_values(
+        let new_drop = RainDrop::from_values(
             1,
             vec!['a', 'b', 'c'],
             RainDropStyle::Fading,
@@ -278,14 +286,15 @@ mod tests {
             10,
             8,
         );
-        let points = new_worm.to_points_vec();
+        let points = new_drop.to_points_vec();
         assert_eq!(points.len(), 3);
+        assert_eq!(points[0], (10, 10, 'a'));
     }
 
     #[test]
     fn grow() {
         let mut rng = rand::thread_rng();
-        let mut new_worm = RainDrop::from_values(
+        let mut new_drop = RainDrop::from_values(
             1,
             vec!['a'],
             RainDropStyle::Front,
@@ -294,11 +303,11 @@ mod tests {
             20,
             10,
         );
-        new_worm.grow(10, &mut rng);
-        assert_eq!(new_worm.body.len(), 2);
-        assert_eq!(new_worm.body.get(1), Some(&'a'));
+        new_drop.grow(10, &mut rng);
+        assert_eq!(new_drop.body.len(), 2);
+        assert_eq!(new_drop.body.get(1), Some(&'a'));
 
-        let mut new_worm = RainDrop::from_values(
+        let mut new_drop = RainDrop::from_values(
             1,
             vec!['b'],
             RainDropStyle::Middle,
@@ -307,13 +316,13 @@ mod tests {
             20,
             4,
         );
-        new_worm.grow(12, &mut rng);
-        assert_eq!(new_worm.body.len(), 2);
-        assert_eq!(new_worm.body.get(1), Some(&'b'));
-        new_worm.grow(11, &mut rng);
-        assert_eq!(new_worm.body.len(), 2);
+        new_drop.grow(12, &mut rng);
+        assert_eq!(new_drop.body.len(), 2);
+        assert_eq!(new_drop.body.get(1), Some(&'b'));
+        new_drop.grow(11, &mut rng);
+        assert_eq!(new_drop.body.len(), 2);
 
-        let mut new_worm = RainDrop::from_values(
+        let mut new_drop = RainDrop::from_values(
             1,
             vec!['c'],
             RainDropStyle::Back,
@@ -322,11 +331,10 @@ mod tests {
             3,
             4,
         );
-        new_worm.grow(12, &mut rng);
-        new_worm.grow(12, &mut rng);
-        new_worm.grow(12, &mut rng);
-        new_worm.grow(12, &mut rng);
-        assert_eq!(new_worm.body.len(), 3);
+        for _ in 1..10 {
+            new_drop.grow(12, &mut rng);
+        }
+        assert_eq!(new_drop.body.len(), 3);
     }
 
     #[test]
@@ -334,28 +342,28 @@ mod tests {
         let mut rng = rand::thread_rng();
 
         // nothing special worm update
-        let mut new_worm = RainDrop::from_values(
+        let mut new_drop = RainDrop::from_values(
             1,
             vec!['c'],
             RainDropStyle::Back,
             10,
             10.8,
             3,
-            8,
+            10,
         );
-        new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
-        assert_eq!(new_worm.fy.round() as u16, 19);
-        assert_eq!(new_worm.body.len(), 2);
+        new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
+        assert_eq!(new_drop.fy.round() as u16, 21);
+        assert_eq!(new_drop.body.len(), 2);
 
         // edge case when body len is 0 (why?)
-        let mut new_worm =
+        let mut new_drop =
             RainDrop::from_values(1, vec![], RainDropStyle::Middle, 10, 10.8, 3, 8);
-        new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
-        assert_eq!(new_worm.body.len(), 1);
-        assert_eq!(new_worm.fy, 1.0); // should be out of the h bounds
+        new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
+        assert_eq!(new_drop.body.len(), 1);
+        assert_eq!(new_drop.fy, 0.0); // should be out of the h bounds and reseted
 
         // when tail_y < 0
-        let mut new_worm = RainDrop::from_values(
+        let mut new_drop = RainDrop::from_values(
             1,
             vec!['a', 'b', 'c', 'd'],
             RainDropStyle::Fading,
@@ -364,12 +372,12 @@ mod tests {
             5,
             2,
         );
-        new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
-        assert_eq!(new_worm.body.len(), 5);
-        assert_eq!((new_worm.fy - new_worm.body.len() as f32) < 0.0, true);
+        new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
+        assert_eq!(new_drop.body.len(), 5);
+        assert!((new_drop.fy - new_drop.body.len() as f32) < 0.0);
 
         // when head_y > screen height
-        let mut new_worm = RainDrop::from_values(
+        let mut new_drop = RainDrop::from_values(
             1,
             vec!['a', 'b', 'c', 'd'],
             RainDropStyle::Fading,
@@ -378,12 +386,12 @@ mod tests {
             5,
             2,
         );
-        new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
-        assert_eq!(new_worm.body.len(), 4);
-        assert_eq!(new_worm.fy > 30.0, true);
+        new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
+        assert_eq!(new_drop.body.len(), 5);
+        assert_eq!(new_drop.fy > 30.0, true);
 
         // when head_y > screen height and body len is 2
-        let mut new_worm = RainDrop::from_values(
+        let mut new_drop = RainDrop::from_values(
             1,
             vec!['a', 'b'],
             RainDropStyle::Fading,
@@ -392,10 +400,30 @@ mod tests {
             5,
             2,
         );
-        new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
-        assert_eq!(new_worm.body.len(), 2);
-        assert_eq!(new_worm.fy, 31.0);
-        new_worm.update(30, 30, Duration::from_millis(1000), &mut rng);
-        assert_eq!(new_worm.fy, 1.0); // should be reseted there
+        new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
+        assert_eq!(new_drop.body.len(), 3);
+        assert_eq!(new_drop.fy, 31.0);
+        new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
+        assert_eq!(new_drop.fy, 33.0); // should be reseted there
+    }
+
+    #[test]
+    fn out_of_bounds() {
+        let mut rng = rand::thread_rng();
+        let mut drops = vec![];
+        for i in 1..=10 {
+            drops.push(RainDrop::new(&get_sane_options(), i, &mut rng));
+        }
+        assert_eq!(drops.len(), 10);
+
+        for _ in 1..=1000 {
+            for drop in drops.iter_mut() {
+                drop.update(
+                    &get_sane_options(),
+                    Duration::from_millis(100),
+                    &mut rng,
+                )
+            }
+        }
     }
 }

@@ -23,7 +23,7 @@ impl DigitalRain {
     pub fn new(options: DigitalRainOptions) -> Self {
         let mut rng = rand::thread_rng();
         let mut rain_drops: Vec<RainDrop> = vec![];
-        let buffer: Buffer = Buffer::new(
+        let mut buffer: Buffer = Buffer::new(
             options.get_width() as usize,
             options.get_height() as usize,
         );
@@ -84,12 +84,39 @@ impl DigitalRain {
             ),
         ];
 
+        Self::fill_buffer(&mut rain_drops, &mut buffer, &gradients);
+
         Self {
             options,
             gradients,
             rain_drops,
             buffer,
             rng,
+        }
+    }
+
+    pub fn fill_buffer(
+        rain_drops: &mut [RainDrop],
+        buffer: &mut Buffer,
+        gradients: &[Vec<gradient::Color>],
+    ) {
+        rain_drops.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
+        for rain_drop in rain_drops.iter().rev() {
+            let points = rain_drop.to_points_vec();
+            for (index, (x, y, character)) in points.iter().enumerate() {
+                let (width, height) = buffer.get_size();
+                if *x < width as u16 && *y < height as u16 {
+                    buffer.set(
+                        *x as usize,
+                        *y as usize,
+                        Cell::new(
+                            *character,
+                            pick_color(&rain_drop.style, index, gradients),
+                            pick_style(&rain_drop.style, index),
+                        ),
+                    );
+                }
+            }
         }
     }
 
@@ -159,30 +186,33 @@ impl DigitalRain {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{super::rain_options::DigitalRainOptionsBuilder, *};
+
+    fn get_sane_options() -> DigitalRainOptions {
+        DigitalRainOptionsBuilder::new((100, 100))
+            .drops_range((20, 30))
+            .speed_range((10, 20))
+            .build()
+    }
 
     #[test]
     fn create_new() {
-        let m = DigitalRain::new(30, 30, 20);
-        assert_eq!(m.rain_drops.len(), 20);
+        let foo = DigitalRain::new(get_sane_options());
+        assert_eq!(foo.rain_drops.len(), 20);
     }
 
     #[test]
-    fn draw() {
-        let mut m = DigitalRain::new(30, 30, 20);
-        let q = m.get_diff();
-        assert_eq!(q.len() > 0, true);
-        // assert_eq!(q.len(), 1000);
-        assert_eq!(q.len() < 1000, true);
+    fn no_diff() {
+        let mut foo = DigitalRain::new(get_sane_options());
+        let q = foo.get_diff();
+        assert!(q.len() == 0);
     }
 
     #[test]
-    fn update() {
-        let mut m = DigitalRain::new(30, 30, 20);
-        let q_1_len = m.get_diff().len();
-        m.update();
-        let q_2_len = m.get_diff().len();
-        assert!(q_1_len > 0);
-        assert!(q_2_len > 0);
+    fn some_diff_and_update() {
+        let mut foo = DigitalRain::new(get_sane_options());
+        foo.update();
+        let q = foo.get_diff();
+        assert!(q.len() > 0)
     }
 }

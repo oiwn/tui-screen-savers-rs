@@ -24,6 +24,7 @@ where
 
     let rain_options = DigitalRainOptionsBuilder::new((width, height))
         .drops_range((100, 200))
+        .speed_range((2, 10))
         .build();
     let mut matrix = DigitalRain::new(rain_options);
 
@@ -45,7 +46,7 @@ where
                     && actual_x >= 1
                     && actual_y >= 1
             );
-            stdout.queue(cursor::MoveTo(*x as u16, *y as u16))?;
+            stdout.queue(cursor::MoveTo(actual_x as u16, actual_y as u16))?;
             stdout.queue(style::PrintStyledContent(
                 cell.symbol.with(cell.color).attribute(cell.attr),
             ))?;
