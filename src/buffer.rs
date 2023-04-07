@@ -50,6 +50,11 @@ impl Buffer {
         self.buffer[index] = cell;
     }
 
+    pub fn set_from_coords(&mut self, x: usize, y: usize, cell: Cell) {
+        let index = self.index_of(x - 1, y - 1);
+        self.buffer[index] = cell;
+    }
+
     #[allow(dead_code)]
     pub fn get_rect(&self) -> (usize, usize) {
         (self.width, self.height)
@@ -74,6 +79,7 @@ impl Buffer {
         {
             if curr != prev {
                 let (x, y) = self.pos_of(i);
+                debug_assert!(x < self.width && y < self.height);
                 updates.push((x, y, next_buffer[i]));
             }
         }

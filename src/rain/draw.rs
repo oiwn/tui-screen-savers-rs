@@ -2,6 +2,7 @@ use crate::common::process_input;
 use crate::rain::digital_rain::DigitalRain;
 use crate::rain::gradient;
 use crate::rain::rain_drop::RainDropStyle;
+use crate::rain::rain_options::DigitalRainOptionsBuilder;
 use crossterm::{
     cursor,
     style::{self, Stylize},
@@ -9,19 +10,22 @@ use crossterm::{
 };
 use std::{io::Write, time::Duration};
 
-static INITIAL_WORMS: usize = 100;
-
 pub fn run_loop<W>(stdout: &mut W, iterations: Option<usize>) -> Result<f64>
 where
     W: Write,
 {
-    let mut is_running = true;
-    let mut frames_per_second = 0.0;
     let (width, height) = terminal::size()?;
-    let mut matrix = DigitalRain::new(width, height, INITIAL_WORMS);
 
     // #[cfg(test)]
     let mut iters: usize = 0;
+
+    let mut is_running = true;
+    let mut frames_per_second = 0.0;
+
+    let rain_options = DigitalRainOptionsBuilder::new((width, height))
+        .drops_range((100, 200))
+        .build();
+    let mut matrix = DigitalRain::new(rain_options);
 
     // main loop
     stdout.queue(terminal::Clear(terminal::ClearType::All))?;
@@ -33,8 +37,13 @@ where
         let queue = matrix.get_diff();
         for item in queue.iter() {
             let (x, y, cell) = item;
-            assert!(
-                *x < width as usize && *y < height as usize && *x >= 1 && *y >= 1
+            let actual_x = x + 1;
+            let actual_y = y + 1;
+            debug_assert!(
+                actual_x <= width as usize
+                    && actual_y <= height as usize
+                    && actual_x >= 1
+                    && actual_y >= 1
             );
             stdout.queue(cursor::MoveTo(*x as u16, *y as u16))?;
             stdout.queue(style::PrintStyledContent(
@@ -66,6 +75,7 @@ pub fn pick_style(vw_style: &RainDropStyle, pos: usize) -> style::Attribute {
             0..=4 => style::Attribute::Bold,
             _ => style::Attribute::NormalIntensity,
         },
+        RainDropStyle::Back => style::Attribute::Bold,
         _ => style::Attribute::NormalIntensity,
     }
 }

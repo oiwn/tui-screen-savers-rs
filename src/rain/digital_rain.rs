@@ -1,30 +1,38 @@
+use super::draw::{pick_color, pick_style};
+use super::gradient;
+use super::rain_drop::RainDrop;
+use super::rain_options::DigitalRainOptions;
 use crate::buffer::{Buffer, Cell};
-use crate::rain::draw::{pick_color, pick_style};
-use crate::rain::gradient;
-use crate::rain::rain_drop::RainDrop;
 
 use rand::{self, Rng};
 use std::time::Duration;
 
-static MAX_WORMS: usize = 200;
-
 pub struct DigitalRain {
-    screen_width: u16,
-    screen_height: u16,
+    options: DigitalRainOptions,
     gradients: Vec<Vec<gradient::Color>>,
     rain_drops: Vec<RainDrop>,
     buffer: Buffer,
     rng: rand::prelude::ThreadRng,
 }
 
+/// Process digital rain effect.
+/// Noice that all processing done implying coordinates started from 0, 0
+/// and width / height is actual number of columnts and rows
 impl DigitalRain {
     // Initialize screensaver
-    pub fn new(width: u16, height: u16, number_of_worms: usize) -> Self {
+    pub fn new(options: DigitalRainOptions) -> Self {
         let mut rng = rand::thread_rng();
         let mut rain_drops: Vec<RainDrop> = vec![];
-        let buffer: Buffer = Buffer::new(width as usize, height as usize);
-        for rain_drop_id in 1..=number_of_worms {
-            rain_drops.push(RainDrop::new(width, height, rain_drop_id, &mut rng));
+        let buffer: Buffer = Buffer::new(
+            options.get_width() as usize,
+            options.get_height() as usize,
+        );
+        for rain_drop_id in 1..=options.get_min_drops_number() {
+            rain_drops.push(RainDrop::new(
+                &options,
+                rain_drop_id as usize,
+                &mut rng,
+            ));
         }
 
         // fill gradients
@@ -42,7 +50,7 @@ impl DigitalRain {
                     b: 10,
                 },
                 4,
-                height as usize / 2,
+                3 * options.get_height() as usize / 2,
             ),
             gradient::two_step_color_gradient(
                 gradient::Color {
@@ -57,7 +65,7 @@ impl DigitalRain {
                     b: 10,
                 },
                 6,
-                height as usize / 2,
+                3 * options.get_height() as usize / 2,
             ),
             gradient::two_step_color_gradient(
                 gradient::Color {
@@ -71,14 +79,13 @@ impl DigitalRain {
                     g: 10,
                     b: 10,
                 },
-                4,
-                height as usize / 2,
+                options.get_height() as usize / 2,
+                3 * options.get_height() as usize / 2,
             ),
         ];
 
         Self {
-            screen_width: width,
-            screen_height: height,
+            options,
             gradients,
             rain_drops,
             buffer,
@@ -88,8 +95,10 @@ impl DigitalRain {
 
     /// Calculate difference between current frame and previous frame
     pub fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
-        let mut curr_buffer =
-            Buffer::new(self.screen_width as usize, self.screen_height as usize);
+        let mut curr_buffer = Buffer::new(
+            self.options.get_width() as usize,
+            self.options.get_height() as usize,
+        );
 
         // fill current buffer
         // first draw drops with bigger fy
@@ -98,7 +107,9 @@ impl DigitalRain {
         for rain_drop in self.rain_drops.iter().rev() {
             let points = rain_drop.to_points_vec();
             for (index, (x, y, character)) in points.iter().enumerate() {
-                if *x < self.screen_width && *y < self.screen_height {
+                if *x < self.options.get_width() as u16
+                    && *y < self.options.get_height() as u16
+                {
                     curr_buffer.set(
                         *x as usize,
                         *y as usize,
@@ -119,14 +130,13 @@ impl DigitalRain {
 
     /// Add one more worm with decent chance
     pub fn add_one(&mut self) {
-        if self.rain_drops.len() >= MAX_WORMS {
+        if self.rain_drops.len() >= self.options.get_max_drops_number() as usize {
             return;
         };
         let mut rng = rand::thread_rng();
         if rng.gen_range(0.0..=1.0) <= 0.3 {
             self.rain_drops.push(RainDrop::new(
-                self.screen_width,
-                self.screen_height,
+                &self.options,
                 self.rain_drops.len() + 1,
                 &mut rng,
             ));
@@ -137,8 +147,7 @@ impl DigitalRain {
     pub fn update(&mut self) {
         for rain_drop in self.rain_drops.iter_mut() {
             rain_drop.update(
-                self.screen_width,
-                self.screen_height,
+                &self.options,
                 Duration::from_millis(50),
                 &mut self.rng,
             );
