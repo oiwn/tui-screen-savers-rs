@@ -1,6 +1,8 @@
-# Matrix screensaver for terminal
+# Screensaver for terminal
 
-Implementing simple "matrix" screensaver in Rust language.
+Implementing simple "matrix" or digital rain screensaver in Rust language.
+
+![digital rain](https://i.imgur.com/OPKC7Rb.png)
 
 ### More?
 
