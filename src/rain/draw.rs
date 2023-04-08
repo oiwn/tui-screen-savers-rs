@@ -21,7 +21,7 @@ where
 
     let mut is_running = true;
     let mut frames_per_second = 0.0;
-    let target_frame_duration = Duration::from_secs_f64(1.0 / 40.0 as f64);
+    let target_frame_duration = Duration::from_secs_f64(1.0 / 40.0_f64);
 
     let rain_options = DigitalRainOptionsBuilder::new((width, height))
         .drops_range((100, 200))
