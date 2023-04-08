@@ -10,7 +10,6 @@ pub struct Cell {
 /// Buffer implementation, coordinates unlike in crossterm started from [0, 0]
 pub struct Buffer {
     width: usize,
-    #[allow(dead_code)]
     height: usize,
     buffer: Vec<Cell>,
 }
@@ -45,14 +44,14 @@ impl Buffer {
         }
     }
 
-    pub fn set(&mut self, x: usize, y: usize, cell: Cell) {
-        let index = self.index_of(x, y);
-        self.buffer[index] = cell;
+    pub fn get_size(&self) -> (usize, usize) {
+        (self.width, self.height)
     }
 
-    #[allow(dead_code)]
-    pub fn get_rect(&self) -> (usize, usize) {
-        (self.width, self.height)
+    pub fn set(&mut self, x: usize, y: usize, cell: Cell) {
+        debug_assert!(x < self.width && y < self.height);
+        let index = self.index_of(x, y);
+        self.buffer[index] = cell;
     }
 
     pub fn index_of(&self, x: usize, y: usize) -> usize {
@@ -74,6 +73,7 @@ impl Buffer {
         {
             if curr != prev {
                 let (x, y) = self.pos_of(i);
+                debug_assert!(x < self.width && y < self.height);
                 updates.push((x, y, next_buffer[i]));
             }
         }
@@ -91,7 +91,6 @@ mod tests {
         let buf = Buffer::new(20, 10);
         assert_eq!(buf.width, 20);
         assert_eq!(buf.height, 10);
-        assert_eq!(buf.get_rect(), (20, 10));
     }
 
     #[test]

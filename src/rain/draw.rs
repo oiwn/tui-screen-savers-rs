@@ -2,6 +2,7 @@ use crate::common::process_input;
 use crate::rain::digital_rain::DigitalRain;
 use crate::rain::gradient;
 use crate::rain::rain_drop::RainDropStyle;
+use crate::rain::rain_options::DigitalRainOptionsBuilder;
 use crossterm::{
     cursor,
     style::{self, Stylize},
@@ -9,41 +10,59 @@ use crossterm::{
 };
 use std::{io::Write, time::Duration};
 
-static INITIAL_WORMS: usize = 100;
-
 pub fn run_loop<W>(stdout: &mut W, iterations: Option<usize>) -> Result<f64>
 where
     W: Write,
 {
-    let mut is_running = true;
-    let mut frames_per_second = 0.0;
     let (width, height) = terminal::size()?;
-    let mut matrix = DigitalRain::new(width, height, INITIAL_WORMS);
 
     // #[cfg(test)]
     let mut iters: usize = 0;
+
+    let mut is_running = true;
+    let mut frames_per_second = 0.0;
+    let target_frame_duration = Duration::from_secs_f64(1.0 / 40.0_f64);
+
+    let rain_options = DigitalRainOptionsBuilder::new((width, height))
+        .drops_range((100, 200))
+        .speed_range((2, 15))
+        .build();
+    let mut digital_rain = DigitalRain::new(rain_options);
 
     // main loop
     stdout.queue(terminal::Clear(terminal::ClearType::All))?;
     while is_running {
         let started_at: std::time::SystemTime = std::time::SystemTime::now();
         is_running = process_input()?;
-        std::thread::sleep(Duration::from_millis(5));
 
-        let queue = matrix.get_diff();
+        // draw diff
+        let queue = digital_rain.get_diff();
         for item in queue.iter() {
             let (x, y, cell) = item;
-            assert!(
-                *x < width as usize && *y < height as usize && *x >= 1 && *y >= 1
+            let actual_x = x + 1;
+            let actual_y = y + 1;
+            debug_assert!(
+                actual_x <= width as usize
+                    && actual_y <= height as usize
+                    && actual_x >= 1
+                    && actual_y >= 1
             );
-            stdout.queue(cursor::MoveTo(*x as u16, *y as u16))?;
+            stdout.queue(cursor::MoveTo(actual_x as u16, actual_y as u16))?;
             stdout.queue(style::PrintStyledContent(
                 cell.symbol.with(cell.color).attribute(cell.attr),
             ))?;
         }
-
         stdout.flush()?;
-        matrix.update();
+        digital_rain.update();
+
+        // stabilize fps if requred
+        let ended_at = std::time::SystemTime::now();
+        let delta = ended_at.duration_since(started_at).unwrap();
+        if delta < target_frame_duration {
+            std::thread::sleep(target_frame_duration - delta);
+        };
+
+        // calculate actual frame rate
         let ended_at = std::time::SystemTime::now();
         let delta = ended_at.duration_since(started_at).unwrap();
         frames_per_second = (frames_per_second + (1.0 / delta.as_secs_f64())) / 2.0;
@@ -66,6 +85,7 @@ pub fn pick_style(vw_style: &RainDropStyle, pos: usize) -> style::Attribute {
             0..=4 => style::Attribute::Bold,
             _ => style::Attribute::NormalIntensity,
         },
+        RainDropStyle::Back => style::Attribute::Bold,
         _ => style::Attribute::NormalIntensity,
     }
 }

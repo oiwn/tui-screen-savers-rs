@@ -15,14 +15,15 @@
 ** DONE even better gradient (2 steps from white to dark gray)
 ** DONE move "map" (with position of worms with worm_id) into separate module,
 map completely removed
+** DONE builder pattern for rain drops
+** DONE store options as MatrixOptions
+** DONE keep fps stable and above some value - 20, 30, 60?
+** DONE inconsistency between buffer.rs coordinates and crossterm screen started from 1, 1
 ** TODO zbuffer for different worm positions
-** TODO builder pattern for rain drops
 ** TODO general interface to run screen-savers
-** TODO keep fps stable and above some value - 20, 30, 60?
-** TODO make worms fade away when they reach the bottom
-** TODO store options as MatrixOptions
+** TODO make drops sometimes fade away
 ** TODO update screen size (h/w) during execution (currently doesn't track it)
-** TODO inconsistency between buffer.rs coordinates and crossterm screen started from 1, 1
+** TODO still something strange with coordinates, looks like there are no drops when y = 0
 
 * After main Features
 ** DONE github CI/CD pipeline
@@ -37,10 +38,10 @@ map completely removed
 - [X] benchmarsk for main loop with drawing
 
 * Optimizations
-** fx in RainDrop could be u16 or usize
+** DONE fx in RainDrop could be u16 or usize
 ** clamp coordinates to make sure they fit the screen
 ** DONE update crossterm
-** SPEED_RANGE as interval type
+** DONE SPEED_RANGE as interval type
 ** DONE implement buffer to keep only differences
 ** DONE need to minimize amount of clean cells commands
 on next frame not all cell should be cleaned

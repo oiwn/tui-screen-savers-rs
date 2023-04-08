@@ -1,7 +1,17 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use matrix_rs::rain::{digital_rain, draw, rain_drop};
+use matrix_rs::rain::{
+    digital_rain, draw, rain_drop,
+    rain_options::{DigitalRainOptions, DigitalRainOptionsBuilder},
+};
 use rand;
 use std::time::Duration;
+
+fn get_sane_options() -> DigitalRainOptions {
+    DigitalRainOptionsBuilder::new((100, 100))
+        .drops_range((20, 30))
+        .speed_range((10, 20))
+        .build()
+}
 
 fn run_loop_benchmark(_c: &mut Criterion) {
     let mut cc = Criterion::default()
@@ -18,39 +28,43 @@ fn run_loop_benchmark(_c: &mut Criterion) {
 }
 
 fn vertical_worm_benchmark(c: &mut Criterion) {
+    let options = get_sane_options();
     c.bench_function("benchmark_worm_new_1000", |b| {
         b.iter(|| {
             let mut rng = rand::thread_rng();
             for index in 1..=1000 {
-                rain_drop::RainDrop::new(100, 100, index, &mut rng);
+                rain_drop::RainDrop::new(&options, index, &mut rng);
             }
         })
     });
 
     c.bench_function("benchmark_worm_update_1000", |b| {
         let mut rng = rand::thread_rng();
-        let mut worms: Vec<rain_drop::RainDrop> = vec![];
+        let options = get_sane_options();
+        let mut drops: Vec<rain_drop::RainDrop> = vec![];
         for index in 1..=1000 {
-            worms.push(rain_drop::RainDrop::new(100, 100, index, &mut rng));
+            drops.push(rain_drop::RainDrop::new(&options, index, &mut rng));
         }
         b.iter(|| {
-            for worm in worms.iter_mut() {
-                worm.update(100, 100, Duration::from_millis(50), &mut rng);
+            for drop in drops.iter_mut() {
+                drop.update(&options, Duration::from_millis(50), &mut rng);
             }
         })
     });
 }
 
 fn digital_rain_benchmark(c: &mut Criterion) {
-    c.bench_function("benchmark_rain_new_200", |b| {
+    c.bench_function("benchmark_rain_new", |b| {
         b.iter(|| {
-            let _ = digital_rain::DigitalRain::new(100, 100, 200);
+            let options = get_sane_options();
+            let _ = digital_rain::DigitalRain::new(options);
         })
     });
 
-    c.bench_function("benchmark_rain_update_10", |b| {
+    c.bench_function("benchmark_rain_update", |b| {
         b.iter(|| {
-            let mut rain = digital_rain::DigitalRain::new(100, 100, 200);
+            let options = get_sane_options();
+            let mut rain = digital_rain::DigitalRain::new(options);
             for _ in 1..=10 {
                 rain.update();
             }
