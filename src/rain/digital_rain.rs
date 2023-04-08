@@ -100,7 +100,7 @@ impl DigitalRain {
         buffer: &mut Buffer,
         gradients: &[Vec<gradient::Color>],
     ) {
-        rain_drops.sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
+        rain_drops.sort_by(|a, b| a.speed.partial_cmp(&b.speed).unwrap());
         for rain_drop in rain_drops.iter().rev() {
             let points = rain_drop.to_points_vec();
             for (index, (x, y, character)) in points.iter().enumerate() {
@@ -129,26 +129,7 @@ impl DigitalRain {
 
         // fill current buffer
         // first draw drops with bigger fy
-        self.rain_drops
-            .sort_by(|a, b| a.fy.partial_cmp(&b.fy).unwrap());
-        for rain_drop in self.rain_drops.iter().rev() {
-            let points = rain_drop.to_points_vec();
-            for (index, (x, y, character)) in points.iter().enumerate() {
-                if *x < self.options.get_width() as u16
-                    && *y < self.options.get_height() as u16
-                {
-                    curr_buffer.set(
-                        *x as usize,
-                        *y as usize,
-                        Cell::new(
-                            *character,
-                            pick_color(&rain_drop.style, index, &self.gradients),
-                            pick_style(&rain_drop.style, index),
-                        ),
-                    );
-                }
-            }
-        }
+        Self::fill_buffer(&mut self.rain_drops, &mut curr_buffer, &self.gradients);
 
         let diff = self.buffer.diff(&curr_buffer);
         self.buffer = curr_buffer;
@@ -167,7 +148,7 @@ impl DigitalRain {
                 self.rain_drops.len() + 1,
                 &mut rng,
             ));
-        }
+        };
     }
 
     /// Update each rain drop position

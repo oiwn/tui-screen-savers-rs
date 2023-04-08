@@ -12,7 +12,8 @@ use std::{collections::HashMap, time::Duration};
 static CHARACTERS_MAP: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
     let mut m = HashMap::new();
     m.insert("digits", "012345789");
-    m.insert("punctuation", r#":・."=*+-<>"#);
+    // m.insert("punctuation", r#":・."=*+-<>"#);
+    m.insert("punctuation", r#":."=*+-<>"#);
     // m.insert("kanji", "日"); // Somehow it causing blinks - too wide
     m.insert("katakana", "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ");
     m.insert("other", "¦çﾘｸ");
@@ -59,24 +60,29 @@ impl Distribution<RainDropStyle> for Standard {
     }
 }
 
-/// Set of operations to make worm displyaing and moving
+/// Set of operations to make drain drop moving and growing
 impl RainDrop {
-    /// Create new worm with sane random defaults
+    /// Create new rain drop with sane random defaults
     pub fn new(
         options: &DigitalRainOptions,
         drop_id: usize,
         rng: &mut rand::prelude::ThreadRng,
     ) -> Self {
         // pick random first character
-        let body: Vec<char> = vec![*CHARACTERS.choose(rng).unwrap()];
         let style: RainDropStyle = rand::random();
         let fx: u16 = rng.gen_range(0..options.get_width());
-        let fy: f32 = rng.gen_range(0..options.get_height() / 3) as f32;
+        let fy: f32 = rng.gen_range(0..options.get_height() / 4) as f32;
         let max_length: usize =
-            rng.gen_range(0..=(2 * options.get_height() / 3)) as usize;
+            rng.gen_range(4..=(2 * options.get_height() / 3)) as usize;
 
         let speed: u16 =
             rng.gen_range(options.get_min_speed()..=options.get_max_speed());
+
+        let init_length = rng.gen_range(1..max_length / 2);
+        let mut body: Vec<char> = vec![*CHARACTERS.choose(rng).unwrap()];
+        for _ in 1..init_length {
+            body.push(*CHARACTERS.choose(rng).unwrap());
+        }
 
         Self::from_values(drop_id, body, style, fx, fy, max_length, speed)
     }
@@ -151,20 +157,31 @@ impl RainDrop {
 
     /// Grow up matrix worm characters array
     fn grow(&mut self, head_y: u16, rng: &mut rand::prelude::ThreadRng) {
+        if self.body.len() >= self.max_length {
+            self.body.truncate(self.max_length);
+            return;
+        };
+
+        // if position on screen not changed, do not grow body vector
+        let delta: i16 = head_y as i16 - self.fy.round() as i16;
+        if delta > 0 {
+            for _ in 1..=delta as usize {
+                self.body.insert(0, *CHARACTERS.choose(rng).unwrap());
+            }
+        };
+
+        /*
         match self.grow_condition() {
-            true => self.body.insert(0, *CHARACTERS.choose(rng).unwrap()),
-            false => {
+            true => {
                 // if position on screen not changed, do not grow body vector
                 let delta: i16 = head_y as i16 - self.fy.round() as i16;
                 if delta > 0 {
                     self.body.insert(0, *CHARACTERS.choose(rng).unwrap());
-                }
+                };
             }
+            false => {}
         };
-
-        if self.body.len() > self.max_length {
-            self.body.truncate(self.max_length);
-        }
+        */
     }
 
     /// Update rain drops to change position/grow etc
@@ -194,6 +211,7 @@ impl RainDrop {
         // calculate head and tail y coordinate
         let head_y = fy.round() as u16;
         let tail_y = fy.round() as i16 - self.body.len() as i16;
+        let height = options.get_height();
 
         if tail_y <= 0 {
             // not fully come out from top
@@ -202,26 +220,23 @@ impl RainDrop {
             return;
         };
 
-        if (head_y < options.get_height()) && (tail_y > 0) {
+        if (head_y <= height) && (tail_y > 0) {
             // somewhere in the middle
             self.grow(head_y, rng);
             self.fy = fy;
             return;
         };
 
-        if (head_y >= options.get_height())
-            && (tail_y < options.get_height() as i16)
-        {
-            // come to bottom
-            // self.drop_style = RainDropStyle::Fading;
+        if (head_y > height) && (tail_y < height as i16) {
+            // got to the bottom
             self.fy = fy;
             return;
         };
 
         // NOTE: need this to reset
-        if tail_y as u16 >= options.get_height() {
+        if tail_y as u16 >= height {
             self.reset(options, rng);
-        }
+        };
     }
 }
 

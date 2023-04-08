@@ -24,7 +24,7 @@ where
 
     let rain_options = DigitalRainOptionsBuilder::new((width, height))
         .drops_range((100, 200))
-        .speed_range((2, 10))
+        .speed_range((2, 15))
         .build();
     let mut matrix = DigitalRain::new(rain_options);
 
