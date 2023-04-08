@@ -17,12 +17,13 @@
 map completely removed
 ** DONE builder pattern for rain drops
 ** DONE store options as MatrixOptions
+** DONE keep fps stable and above some value - 20, 30, 60?
+** DONE inconsistency between buffer.rs coordinates and crossterm screen started from 1, 1
 ** TODO zbuffer for different worm positions
 ** TODO general interface to run screen-savers
-** TODO keep fps stable and above some value - 20, 30, 60?
-** TODO make worms fade away when they reach the bottom
+** TODO make drops sometimes fade away
 ** TODO update screen size (h/w) during execution (currently doesn't track it)
-** TODO inconsistency between buffer.rs coordinates and crossterm screen started from 1, 1
+** TODO still something strange with coordinates, looks like there are no drops when y = 0
 
 * After main Features
 ** DONE github CI/CD pipeline
