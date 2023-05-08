@@ -31,7 +31,6 @@ where
     let mut drain = DigitalRain::new(rain_options);
 
     // main loop
-    stdout.queue(terminal::Clear(terminal::ClearType::All))?;
     while is_running {
         let started_at: std::time::SystemTime = std::time::SystemTime::now();
         is_running = process_input()?;
@@ -60,9 +59,9 @@ where
         let delta = ended_at.duration_since(started_at).unwrap();
         frames_per_second = (frames_per_second + (1.0 / delta.as_secs_f64())) / 2.0;
 
-        // if delta < target_frame_duration {
-        //     delay = target_frame_duration;
-        // }
+        if delta < target_frame_duration {
+            delay = target_frame_duration.as_secs() as f64;
+        }
 
         // #[cfg(test)]
         if let Some(iterations) = iterations {

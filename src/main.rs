@@ -29,6 +29,7 @@ fn main() -> crossterm::Result<()> {
     terminal::enable_raw_mode()?;
     execute!(stdout, cursor::Hide)?;
     execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide)?;
+    execute!(stdout, terminal::Clear(terminal::ClearType::All))?;
 
     let fps = match args.screen_saver.as_str() {
         "matrix" => rain::draw::run_loop(&mut stdout, None)?,
