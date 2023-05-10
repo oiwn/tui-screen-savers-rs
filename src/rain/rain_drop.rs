@@ -9,12 +9,14 @@ use rand::{
 use std::{collections::HashMap, time::Duration};
 
 /// Characters in form of hashmap with label as key
+/// Note that some characters are wide unicode and they will broke
+/// screen in strange way.
 static CHARACTERS_MAP: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
     let mut m = HashMap::new();
     m.insert("digits", "012345789");
-    // m.insert("punctuation", r#":・."=*+-<>"#);
+    // m.insert("punctuation", r#":・."=*+-<>"#); // wide character there
     m.insert("punctuation", r#":."=*+-<>"#);
-    // m.insert("kanji", "日"); // Somehow it causing blinks - too wide
+    // m.insert("kanji", "日"); // wide character there
     m.insert("katakana", "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ");
     m.insert("other", "¦çﾘｸ");
     m
@@ -162,26 +164,26 @@ impl RainDrop {
             return;
         };
 
-        // if position on screen not changed, do not grow body vector
-        let delta: i16 = head_y as i16 - self.fy.round() as i16;
-        if delta > 0 {
-            for _ in 1..=delta as usize {
-                self.body.insert(0, *CHARACTERS.choose(rng).unwrap());
-            }
-        };
-
-        /*
         match self.grow_condition() {
             true => {
-                // if position on screen not changed, do not grow body vector
+                // grow drop body to the number of cells passed during update
+                let delta: i16 = head_y as i16 - self.fy.round() as i16;
+                if delta > 0 {
+                    for _ in 0..delta as usize {
+                        self.body.insert(0, *CHARACTERS.choose(rng).unwrap());
+                    }
+                };
+            }
+            false => {
+                // grow only to one character if position changed
                 let delta: i16 = head_y as i16 - self.fy.round() as i16;
                 if delta > 0 {
                     self.body.insert(0, *CHARACTERS.choose(rng).unwrap());
                 };
             }
-            false => {}
         };
-        */
+
+        self.body.truncate(self.max_length);
     }
 
     /// Update rain drops to change position/grow etc
@@ -255,7 +257,7 @@ mod tests {
     fn create_new_and_reset() {
         let mut rng = rand::thread_rng();
         let mut new_drop = RainDrop::new(&get_sane_options(), 1, &mut rng);
-        assert_eq!(new_drop.body.len(), 1);
+        assert!(new_drop.body.len() > 0);
         assert!(new_drop.speed > 10);
 
         new_drop.reset(&get_sane_options(), &mut rng);
@@ -319,8 +321,8 @@ mod tests {
             10,
         );
         new_drop.grow(10, &mut rng);
-        assert_eq!(new_drop.body.len(), 2);
-        assert_eq!(new_drop.body.get(1), Some(&'a'));
+        assert_eq!(new_drop.body.len(), 1);
+        assert_eq!(new_drop.body.get(0), Some(&'a'));
 
         let mut new_drop = RainDrop::from_values(
             1,
@@ -368,7 +370,7 @@ mod tests {
         );
         new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
         assert_eq!(new_drop.fy.round() as u16, 21);
-        assert_eq!(new_drop.body.len(), 2);
+        assert_eq!(new_drop.body.len(), 3);
 
         // edge case when body len is 0 (why?)
         let mut new_drop =

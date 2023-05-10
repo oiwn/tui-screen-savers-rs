@@ -115,7 +115,7 @@ impl DigitalRain {
                             pick_style(&rain_drop.style, index),
                         ),
                     );
-                }
+                };
             }
         }
     }

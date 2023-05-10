@@ -13,10 +13,6 @@ pub struct DigitalRainOptionsBuilder {
 }
 
 impl DigitalRainOptions {
-    pub fn builder(&self) -> DigitalRainOptionsBuilder {
-        DigitalRainOptionsBuilder::default()
-    }
-
     #[inline]
     pub fn get_width(&self) -> u16 {
         self.size.0

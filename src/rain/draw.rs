@@ -21,22 +21,21 @@ where
 
     let mut is_running = true;
     let mut frames_per_second = 0.0;
-    let mut delay = 0.0;
-    let target_frame_duration = Duration::from_secs_f64(1.0 / 30.0 as f64);
+    let target_frame_duration = Duration::from_secs_f64(1.0 / 40.0_f64);
 
     let rain_options = DigitalRainOptionsBuilder::new((width, height))
         .drops_range((100, 200))
         .speed_range((2, 15))
         .build();
-    let mut drain = DigitalRain::new(rain_options);
+    let mut digital_rain = DigitalRain::new(rain_options);
 
     // main loop
     while is_running {
         let started_at: std::time::SystemTime = std::time::SystemTime::now();
         is_running = process_input()?;
-        std::thread::sleep(Duration::from_secs_f64(delay));
 
-        let queue = drain.get_diff();
+        // draw diff
+        let queue = digital_rain.get_diff();
         for item in queue.iter() {
             let (x, y, cell) = item;
             let actual_x = x + 1;
@@ -52,15 +51,23 @@ where
                 cell.symbol.with(cell.color).attribute(cell.attr),
             ))?;
         }
-
         stdout.flush()?;
-        drain.update();
+        digital_rain.update();
+
+        // stabilize fps if requred
+        let ended_at = std::time::SystemTime::now();
+        let delta = ended_at.duration_since(started_at).unwrap();
+        if delta < target_frame_duration {
+            std::thread::sleep(target_frame_duration - delta);
+        };
+
+        // calculate actual frame rate
         let ended_at = std::time::SystemTime::now();
         let delta = ended_at.duration_since(started_at).unwrap();
         frames_per_second = (frames_per_second + (1.0 / delta.as_secs_f64())) / 2.0;
 
         if delta < target_frame_duration {
-            delay = target_frame_duration.as_secs() as f64;
+            std::thread::sleep(target_frame_duration - delta);
         }
 
         // #[cfg(test)]
