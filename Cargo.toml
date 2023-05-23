@@ -7,14 +7,14 @@ edition = "2021"
 
 [dependencies]
 crossterm = "0.26.1"
+derive_builder = "0.12.0"
 log = "0.4.17"
-ndarray = { version = "0.15.6", features = ["rayon"] }
+# ndarray = { version = "0.15.6", features = ["rayon"] }
 once_cell = "1.16.0"
 pico-args = "0.5.0"
 rand = "0.8.5"
-rayon = "1.6.0"
+# rayon = "1.6.0"
 simple_logger = "4.0.0"
-
 
 [dev-dependencies]
 criterion = "0.4"
@@ -23,16 +23,8 @@ criterion = "0.4"
 name = "matrix_benchmarks"
 harness = false
 
-# old optimization
-# [profile.release]
-# strip = true
-# opt-level = "z"
-# lto = true
-# codegen-units = 1
-# panic = "abort"
-
 [profile.release]
-opt-level = 3
+opt-level = "z"
 codegen-units = 1
 lto = "fat"
 panic = "abort"

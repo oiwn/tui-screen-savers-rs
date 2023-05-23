@@ -4,6 +4,7 @@ use std::{io, process};
 
 mod buffer;
 mod common;
+mod life;
 mod rain;
 
 const HELP: &str = "\
@@ -31,8 +32,19 @@ fn main() -> crossterm::Result<()> {
     execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide)?;
     execute!(stdout, terminal::Clear(terminal::ClearType::All))?;
 
+    let (width, height) = terminal::size()?;
+
     let fps = match args.screen_saver.as_str() {
         "matrix" => rain::draw::run_loop(&mut stdout, None)?,
+        "life" => {
+            let options = life::ConwayLifeOptionsBuilder::default()
+                .screen_size((width as usize, height as usize))
+                .build()
+                .unwrap();
+            let mut conway_life = life::ConwayLife::new(options);
+            common::run_loop(&mut stdout, &mut conway_life, None)?
+        }
+        // default is digital rain effect
         _ => rain::draw::run_loop(&mut stdout, None)?,
     };
 

@@ -1,6 +1,6 @@
 #+title: Notes
 
-* Features
+* Digital rain
 ** DONE Slowly increasing amount of "worms"
 ** DONE Add speed optimization for release version
 ** DONE try color gradient
@@ -24,18 +24,14 @@ map completely removed
 ** TODO make drops sometimes fade away
 ** TODO update screen size (h/w) during execution (currently doesn't track it)
 ** TODO still something strange with coordinates, looks like there are no drops when y = 0
+** derive_builder for DigitalRainOptions
 
-* After main Features
-** DONE github CI/CD pipeline
-** DONE need tests
-- [X] test VerticalWorm
-- [X] decouple drawing Matrix from calculations
-- [X] test matrix calculation layer
-** DONE need benchmarks
-- [X] need to make whole thing into library with option to compile binary
-- [X] benchmarks for VerticalWorms
-- [X] benchmarks for Matrix
-- [X] benchmarsk for main loop with drawing
+* Convay's Life
+** basic implementation
+- [ ] data structure
+- [ ] rules
+- [ ] initial state
+
 
 * Optimizations
 ** DONE fx in RainDrop could be u16 or usize
