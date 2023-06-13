@@ -1,11 +1,19 @@
 use super::draw::{pick_color, pick_style};
 use super::gradient;
 use super::rain_drop::RainDrop;
-use super::rain_options::DigitalRainOptions;
+// use super::rain_options::DigitalRainOptions;
 use crate::buffer::{Buffer, Cell};
 
+use derive_builder::Builder;
 use rand::{self, Rng};
 use std::time::Duration;
+
+#[derive(Builder, Default, Debug, PartialEq)]
+pub struct DigitalRainOptions {
+    pub size: (u16, u16),
+    pub drops_range: (u16, u16),
+    pub speed_range: (u16, u16),
+}
 
 pub struct DigitalRain {
     options: DigitalRainOptions,
@@ -162,6 +170,38 @@ impl DigitalRain {
         }
 
         self.add_one();
+    }
+}
+
+impl DigitalRainOptions {
+    #[inline]
+    pub fn get_width(&self) -> u16 {
+        self.size.0
+    }
+
+    #[inline]
+    pub fn get_height(&self) -> u16 {
+        self.size.1
+    }
+
+    #[inline]
+    pub fn get_min_drops_number(&self) -> u16 {
+        self.drops_range.0
+    }
+
+    #[inline]
+    pub fn get_max_drops_number(&self) -> u16 {
+        self.drops_range.1
+    }
+
+    #[inline]
+    pub fn get_min_speed(&self) -> u16 {
+        self.speed_range.0
+    }
+
+    #[inline]
+    pub fn get_max_speed(&self) -> u16 {
+        self.speed_range.1
     }
 }
 

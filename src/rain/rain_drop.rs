@@ -1,4 +1,5 @@
-use super::rain_options::DigitalRainOptions;
+// use super::rain_options::DigitalRainOptions;
+use crate::rain::digital_rain::DigitalRainOptions;
 use once_cell::sync::Lazy;
 use rand::{
     self,

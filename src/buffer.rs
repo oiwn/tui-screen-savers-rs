@@ -9,9 +9,9 @@ pub struct Cell {
 
 /// Buffer implementation, coordinates unlike in crossterm started from [0, 0]
 pub struct Buffer {
-    width: usize,
-    height: usize,
-    buffer: Vec<Cell>,
+    pub width: usize,
+    pub height: usize,
+    pub buffer: Vec<Cell>,
 }
 
 impl Cell {
@@ -48,21 +48,24 @@ impl Buffer {
         (self.width, self.height)
     }
 
+    #[inline]
     pub fn set(&mut self, x: usize, y: usize, cell: Cell) {
         debug_assert!(x < self.width && y < self.height);
         let index = self.index_of(x, y);
         self.buffer[index] = cell;
     }
 
-    pub fn get(&self, x: usize, y: usize) -> Cell {
-        let index = self.index_of(x, y);
-        self.buffer[index]
-    }
+    // pub fn get(&self, x: usize, y: usize) -> Cell {
+    //     let index = self.index_of(x, y);
+    //     self.buffer[index]
+    // }
 
+    #[inline]
     pub fn index_of(&self, x: usize, y: usize) -> usize {
         y * self.width + x
     }
 
+    #[inline]
     pub fn pos_of(&self, i: usize) -> (usize, usize) {
         (i % self.width, i / self.width)
     }
@@ -85,6 +88,14 @@ impl Buffer {
 
         updates
     }
+
+    pub fn iter(&self) -> std::slice::Iter<Cell> {
+        self.buffer.iter()
+    }
+
+    // pub fn iter_mut(&mut self) -> std::slice::IterMut<Cell> {
+    //     self.buffer.iter_mut()
+    // }
 }
 
 #[cfg(test)]
