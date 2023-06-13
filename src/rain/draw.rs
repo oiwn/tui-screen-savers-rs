@@ -1,8 +1,7 @@
 use crate::common::process_input;
-use crate::rain::digital_rain::DigitalRain;
+use crate::rain::digital_rain::{DigitalRain, DigitalRainOptionsBuilder};
 use crate::rain::gradient;
 use crate::rain::rain_drop::RainDropStyle;
-use crate::rain::rain_options::DigitalRainOptionsBuilder;
 use crossterm::{
     cursor,
     style::{self, Stylize},
@@ -23,14 +22,15 @@ where
     let mut frames_per_second = 0.0;
     let target_frame_duration = Duration::from_secs_f64(1.0 / 40.0_f64);
 
-    let rain_options = DigitalRainOptionsBuilder::new((width, height))
+    let rain_options = DigitalRainOptionsBuilder::default()
+        .size((width, height))
         .drops_range((100, 200))
         .speed_range((2, 15))
-        .build();
+        .build()
+        .unwrap();
     let mut digital_rain = DigitalRain::new(rain_options);
 
     // main loop
-    stdout.queue(terminal::Clear(terminal::ClearType::All))?;
     while is_running {
         let started_at: std::time::SystemTime = std::time::SystemTime::now();
         is_running = process_input()?;
@@ -66,6 +66,10 @@ where
         let ended_at = std::time::SystemTime::now();
         let delta = ended_at.duration_since(started_at).unwrap();
         frames_per_second = (frames_per_second + (1.0 / delta.as_secs_f64())) / 2.0;
+
+        if delta < target_frame_duration {
+            std::thread::sleep(target_frame_duration - delta);
+        }
 
         // #[cfg(test)]
         if let Some(iterations) = iterations {
