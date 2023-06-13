@@ -245,13 +245,15 @@ impl RainDrop {
 
 #[cfg(test)]
 mod tests {
-    use super::{super::rain_options::DigitalRainOptionsBuilder, *};
+    use super::{super::digital_rain::DigitalRainOptionsBuilder, *};
 
     fn get_sane_options() -> DigitalRainOptions {
-        DigitalRainOptionsBuilder::new((100, 100))
+        DigitalRainOptionsBuilder::default()
+            .size((100, 100))
             .drops_range((20, 30))
             .speed_range((10, 20))
             .build()
+            .unwrap()
     }
 
     #[test]

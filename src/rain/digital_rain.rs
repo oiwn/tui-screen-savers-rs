@@ -1,7 +1,6 @@
 use super::draw::{pick_color, pick_style};
 use super::gradient;
 use super::rain_drop::RainDrop;
-// use super::rain_options::DigitalRainOptions;
 use crate::buffer::{Buffer, Cell};
 
 use derive_builder::Builder;
@@ -207,13 +206,15 @@ impl DigitalRainOptions {
 
 #[cfg(test)]
 mod tests {
-    use super::{super::rain_options::DigitalRainOptionsBuilder, *};
+    use super::*;
 
     fn get_sane_options() -> DigitalRainOptions {
-        DigitalRainOptionsBuilder::new((100, 100))
+        DigitalRainOptionsBuilder::default()
+            .size((100, 100))
             .drops_range((20, 30))
             .speed_range((10, 20))
             .build()
+            .unwrap()
     }
 
     #[test]
