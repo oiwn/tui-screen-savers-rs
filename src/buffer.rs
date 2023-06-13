@@ -89,6 +89,7 @@ impl Buffer {
         updates
     }
 
+    #[allow(dead_code)]
     pub fn iter(&self) -> std::slice::Iter<Cell> {
         self.buffer.iter()
     }

@@ -49,10 +49,8 @@ impl LifeCell {
 
 impl TerminalEffect for ConwayLife {
     fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
-        let mut curr_buffer = Buffer::new(
-            self.options.screen_size.0 as usize,
-            self.options.screen_size.1 as usize,
-        );
+        let mut curr_buffer =
+            Buffer::new(self.options.screen_size.0, self.options.screen_size.1);
 
         // fill current buffer
         self.fill_buffer(&mut curr_buffer);
@@ -149,6 +147,7 @@ impl ConwayLife {
     }
 }
 
+#[allow(dead_code)]
 pub fn get_neighbors_by_index(buf: &Buffer, index: usize) -> Vec<(usize, &Cell)> {
     let mut neighbors = Vec::new();
     let (x, y) = buf.pos_of(index);
@@ -170,6 +169,7 @@ pub fn get_neighbors_by_index(buf: &Buffer, index: usize) -> Vec<(usize, &Cell)>
     neighbors
 }
 
+#[allow(dead_code)]
 pub fn get_neighbors_by_coords(
     buf: &Buffer,
     x: usize,
