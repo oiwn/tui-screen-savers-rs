@@ -20,7 +20,7 @@ simple_logger = "4.0.0"
 criterion = "0.4"
 
 [[bench]]
-name = "matrix_benchmarks"
+name = "rain_benchmarks"
 harness = false
 
 [profile.release]

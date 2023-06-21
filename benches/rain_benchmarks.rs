@@ -1,16 +1,15 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use matrix_rs::rain::{
-    digital_rain, draw, rain_drop,
-    rain_options::{DigitalRainOptions, DigitalRainOptionsBuilder},
-};
+use matrix_rs::rain::{digital_rain, draw, rain_drop};
 use rand;
 use std::time::Duration;
 
-fn get_sane_options() -> DigitalRainOptions {
-    DigitalRainOptionsBuilder::new((100, 100))
+fn get_sane_options() -> digital_rain::DigitalRainOptions {
+    digital_rain::DigitalRainOptionsBuilder::default()
+        .size((100, 100))
         .drops_range((20, 30))
         .speed_range((10, 20))
         .build()
+        .unwrap()
 }
 
 fn run_loop_benchmark(_c: &mut Criterion) {
