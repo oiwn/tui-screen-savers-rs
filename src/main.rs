@@ -35,7 +35,16 @@ fn main() -> crossterm::Result<()> {
     let (width, height) = terminal::size()?;
 
     let fps = match args.screen_saver.as_str() {
-        "matrix" => rain::draw::run_loop(&mut stdout, None)?,
+        "matrix" => {
+            let options = rain::digital_rain::DigitalRainOptionsBuilder::default()
+                .size((width, height))
+                .drops_range((100, 200))
+                .speed_range((2, 16))
+                .build()
+                .unwrap();
+            let mut digital_rain = rain::digital_rain::DigitalRain::new(options);
+            common::run_loop(&mut stdout, &mut digital_rain, None)?
+        }
         "life" => {
             let options = life::ConwayLifeOptionsBuilder::default()
                 .screen_size((width as usize, height as usize))
@@ -44,8 +53,10 @@ fn main() -> crossterm::Result<()> {
             let mut conway_life = life::ConwayLife::new(options);
             common::run_loop(&mut stdout, &mut conway_life, None)?
         }
-        // default is digital rain effect
-        _ => rain::draw::run_loop(&mut stdout, None)?,
+        _ => {
+            println!("Pick screensaver: [matrix, life]");
+            0.0
+        }
     };
 
     execute!(stdout, cursor::Show)?;

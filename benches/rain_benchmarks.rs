@@ -1,13 +1,16 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use matrix_rs::rain::{digital_rain, draw, rain_drop};
 use rand;
 use std::time::Duration;
+use tui_savers_rs::{
+    common::{self, TerminalEffect},
+    rain::{digital_rain, rain_drop},
+};
 
 fn get_sane_options() -> digital_rain::DigitalRainOptions {
     digital_rain::DigitalRainOptionsBuilder::default()
-        .size((100, 100))
-        .drops_range((20, 30))
-        .speed_range((10, 20))
+        .size((80, 40))
+        .drops_range((10, 20))
+        .speed_range((2, 16))
         .build()
         .unwrap()
 }
@@ -15,13 +18,16 @@ fn get_sane_options() -> digital_rain::DigitalRainOptions {
 fn run_loop_benchmark(_c: &mut Criterion) {
     let mut cc = Criterion::default()
         .warm_up_time(std::time::Duration::from_secs(3)) // 3 seconds warm-up time
-        .measurement_time(std::time::Duration::from_secs(10)) // 10 seconds measurement time
+        .measurement_time(std::time::Duration::from_secs(20)) // 10 seconds measurement time
         .sample_size(100);
 
     cc.bench_function("benchmark_run_loop", |b| {
+        let mut stdout = Vec::new();
+        let options = get_sane_options();
+        let mut rain = digital_rain::DigitalRain::new(options);
+
         b.iter(|| {
-            let mut stdout = Vec::new();
-            let _ = draw::run_loop(black_box(&mut stdout), Some(3));
+            let _ = common::run_loop(black_box(&mut stdout), &mut rain, Some(3));
         })
     });
 }

@@ -2,6 +2,7 @@ use super::draw::{pick_color, pick_style};
 use super::gradient;
 use super::rain_drop::RainDrop;
 use crate::buffer::{Buffer, Cell};
+use crate::common::TerminalEffect;
 
 use derive_builder::Builder;
 use rand::{self, Rng};
@@ -20,6 +21,37 @@ pub struct DigitalRain {
     rain_drops: Vec<RainDrop>,
     buffer: Buffer,
     rng: rand::prelude::ThreadRng,
+}
+
+impl TerminalEffect for DigitalRain {
+    /// Calculate difference between current frame and previous frame
+    fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
+        let mut curr_buffer = Buffer::new(
+            self.options.get_width() as usize,
+            self.options.get_height() as usize,
+        );
+
+        // fill current buffer
+        // first draw drops with bigger fy
+        Self::fill_buffer(&mut self.rain_drops, &mut curr_buffer, &self.gradients);
+
+        let diff = self.buffer.diff(&curr_buffer);
+        self.buffer = curr_buffer;
+        diff
+    }
+
+    /// Update each rain drop position
+    fn update(&mut self) {
+        for rain_drop in self.rain_drops.iter_mut() {
+            rain_drop.update(
+                &self.options,
+                Duration::from_millis(50),
+                &mut self.rng,
+            );
+        }
+
+        self.add_one();
+    }
 }
 
 /// Process digital rain effect.
@@ -127,22 +159,6 @@ impl DigitalRain {
         }
     }
 
-    /// Calculate difference between current frame and previous frame
-    pub fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
-        let mut curr_buffer = Buffer::new(
-            self.options.get_width() as usize,
-            self.options.get_height() as usize,
-        );
-
-        // fill current buffer
-        // first draw drops with bigger fy
-        Self::fill_buffer(&mut self.rain_drops, &mut curr_buffer, &self.gradients);
-
-        let diff = self.buffer.diff(&curr_buffer);
-        self.buffer = curr_buffer;
-        diff
-    }
-
     /// Add one more worm with decent chance
     pub fn add_one(&mut self) {
         if self.rain_drops.len() >= self.options.get_max_drops_number() as usize {
@@ -156,19 +172,6 @@ impl DigitalRain {
                 &mut rng,
             ));
         };
-    }
-
-    /// Update each rain drop position
-    pub fn update(&mut self) {
-        for rain_drop in self.rain_drops.iter_mut() {
-            rain_drop.update(
-                &self.options,
-                Duration::from_millis(50),
-                &mut self.rng,
-            );
-        }
-
-        self.add_one();
     }
 }
 
