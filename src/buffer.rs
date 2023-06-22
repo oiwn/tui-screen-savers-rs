@@ -1,6 +1,6 @@
 use crossterm::style;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cell {
     pub symbol: char,
     pub color: style::Color,
@@ -55,10 +55,10 @@ impl Buffer {
         self.buffer[index] = cell;
     }
 
-    // pub fn get(&self, x: usize, y: usize) -> Cell {
-    //     let index = self.index_of(x, y);
-    //     self.buffer[index]
-    // }
+    pub fn get(&self, x: usize, y: usize) -> Cell {
+        let index = self.index_of(x, y);
+        self.buffer[index]
+    }
 
     #[inline]
     pub fn index_of(&self, x: usize, y: usize) -> usize {
