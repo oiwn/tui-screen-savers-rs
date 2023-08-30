@@ -22,6 +22,7 @@ map completely removed
 ** TODO zbuffer for different worm positions
 ** TODO general interface to run screen-savers
 ** TODO make drops sometimes fade away
+** TODO match gradient calculation with body length
 ** TODO update screen size (h/w) during execution (currently doesn't track it)
 ** TODO still something strange with coordinates, looks like there are no drops when y = 0
 ** DONE fix digital rain benchmarks
@@ -38,7 +39,7 @@ map completely removed
 
 * Optimizations
 ** DONE fx in RainDrop could be u16 or usize
-** clamp coordinates to make sure they fit the screen
+** DONE clamp coordinates to make sure they fit the screen
 ** DONE update crossterm
 ** DONE SPEED_RANGE as interval type
 ** DONE implement buffer to keep only differences
