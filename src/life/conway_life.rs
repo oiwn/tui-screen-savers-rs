@@ -61,14 +61,7 @@ impl TerminalEffect for ConwayLife {
     }
 
     fn update(&mut self) {
-        // let mut new_buffer: Buffer =
-        //     Buffer::new(self.options.screen_size.0, self.options.screen_size.1);
-
         let mut next_cells = HashMap::new();
-
-        // for ((x, y), cell) in self.cells.iter() {
-        //     next_cells.insert((*x, *y), cell.clone());
-        // }
 
         for (index, _) in self.buffer.iter().enumerate() {
             let neighbors = get_neighbors_by_index(&self.buffer, index);
@@ -92,22 +85,16 @@ impl TerminalEffect for ConwayLife {
             };
         }
 
-        /*
-        for ((x, y), _) in next_cells.iter() {
-            new_buffer.set(
-                *x,
-                *y,
-                Cell {
-                    symbol: '*',
-                    color: style::Color::Green,
-                    attr: style::Attribute::Bold,
-                },
-            );
+        // generate new cells, if cell already present, skip
+        for _ in 0..9 {
+            // Inserting glider at a random position with random rotation
+            let glider_size = 3;
+            let x = self.rng.gen_range(2..self.buffer.width - glider_size + 1);
+            let y = self.rng.gen_range(2..self.buffer.height - glider_size + 1);
+            let rotation = [0, 90, 180, 270][self.rng.gen_range(0..4)];
+            insert_glider(&mut next_cells, x, y, rotation);
         }
-        */
-
         self.cells = next_cells;
-        // self.buffer = new_buffer;
     }
 }
 
@@ -134,39 +121,40 @@ impl ConwayLife {
     }
 
     pub fn fill_buffer(&mut self, buffer: &mut Buffer) {
-        // let (width, height) = buffer.get_size();
-
-        /*
-        for w in 0..width {
-            for h in 0..height {
-                buffer.set(
-                    w,
-                    h,
-                    Cell::new('#', style::Color::Grey, style::Attribute::Bold),
-                );
-            }
-        }
-        */
-
-        // buffer.set(
-        //     0,
-        //     0,
-        //     Cell::new('%', style::Color::Red, style::Attribute::NoBold),
-        // );
-
-        // buffer.set(
-        //     width - 1,
-        //     height - 1,
-        //     Cell::new('%', style::Color::Red, style::Attribute::NoBold),
-        // );
-
-        for ((x, y), _cell) in self.cells.iter() {
+        for ((x, y), cell) in self.cells.iter() {
             buffer.set(
                 *x,
                 *y,
-                Cell::new('*', style::Color::Green, style::Attribute::Bold),
+                Cell::new(
+                    cell.character,
+                    style::Color::Green,
+                    style::Attribute::Bold,
+                ),
             )
         }
+    }
+}
+
+fn insert_glider(
+    cells: &mut HashMap<(usize, usize), LifeCell>,
+    x: usize,
+    y: usize,
+    rotation: i32,
+) {
+    let base_glider = vec![(1, 0), (2, 1), (0, 2), (1, 2), (2, 2)];
+
+    let rotated_glider = base_glider.iter().map(|&(dx, dy)| {
+        match rotation {
+            0 => (x + dx, y + dy),
+            90 => (x + dy, y - dx + 2), // Adjusted for rotation
+            180 => (x - dx + 2, y - dy + 2), // Adjusted for rotation
+            270 => (x - dy, y + dx),    // Adjusted for rotation
+            _ => (x + dx, y + dy),      // Default case, no rotation
+        }
+    });
+
+    for coords in rotated_glider {
+        cells.insert(coords, LifeCell { character: '0' });
     }
 }
 

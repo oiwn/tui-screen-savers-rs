@@ -24,14 +24,14 @@ map completely removed
 ** TODO make drops sometimes fade away
 ** TODO update screen size (h/w) during execution (currently doesn't track it)
 ** TODO still something strange with coordinates, looks like there are no drops when y = 0
-** TODO fix digital rain benchmarks
+** DONE fix digital rain benchmarks
 ** DONE derive_builder for DigitalRainOptions
 
 * Convay's Life
 ** basic implementation
 - [X] data structure
-- [ ] rules
-- [ ] initial state
+- [X] rules
+- [X] initial state
 
 * https://en.wikipedia.org/wiki/Schelling%27s_model_of_segregation
 
