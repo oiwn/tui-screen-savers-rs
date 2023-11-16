@@ -8,15 +8,17 @@ mod life;
 mod rain;
 
 const HELP: &str = "\
-Terminal screensavers";
+Terminal screensavers\n
+./matrix-rs matrix\n
+./matrix-rs life";
 
 #[derive(Debug)]
 struct AppArgs {
     screen_saver: String,
 }
 
-fn main() -> crossterm::Result<()> {
-    simple_logger::SimpleLogger::new().env().init().unwrap();
+fn main() -> std::io::Result<()> {
+    tracing_subscriber::fmt::init();
 
     let args = match parse_args() {
         Ok(v) => v,

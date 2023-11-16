@@ -2,9 +2,12 @@ use crate::buffer::Cell;
 use crossterm::{
     cursor, event,
     style::{self, Stylize},
-    terminal, QueueableCommand, Result,
+    terminal, QueueableCommand,
 };
-use std::{io::Write, time::Duration};
+use std::{
+    io::{Result, Write},
+    time::Duration,
+};
 
 pub trait TerminalEffect {
     fn get_diff(&mut self) -> Vec<(usize, usize, Cell)>;
