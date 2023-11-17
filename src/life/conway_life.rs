@@ -29,7 +29,6 @@ pub struct ConwayLifeOptions {
 pub struct LifeCell {
     pub character: char,
     pub color: style::Color,
-    pub 
     // coords: (usize, usize),
 }
 
@@ -45,7 +44,10 @@ impl LifeCell {
         _options: &ConwayLifeOptions,
         _rng: &mut rand::prelude::ThreadRng,
     ) -> Self {
-        Self { character: '*', color: style::Color::Green }
+        Self {
+            character: '*',
+            color: style::Color::Green,
+        }
     }
 }
 
@@ -81,7 +83,13 @@ impl TerminalEffect for ConwayLife {
             } else {
                 // Birth: a dead cell with exactly 3 alive neighbors becomes alive
                 if alive_neighbors == 3 {
-                    next_cells.insert((nx, ny), LifeCell { character: 'X' });
+                    next_cells.insert(
+                        (nx, ny),
+                        LifeCell {
+                            character: 'X',
+                            color: style::Color::Blue,
+                        },
+                    );
                     // Replace 'X' with the desired initial state
                 }
             };
@@ -156,7 +164,13 @@ fn insert_glider(
     });
 
     for coords in rotated_glider {
-        cells.insert(coords, LifeCell { character: '0' });
+        cells.insert(
+            coords,
+            LifeCell {
+                character: '0',
+                color: style::Color::DarkGreen,
+            },
+        );
     }
 }
 
