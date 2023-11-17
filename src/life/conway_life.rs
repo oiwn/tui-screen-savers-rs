@@ -28,6 +28,8 @@ pub struct ConwayLifeOptions {
 #[derive(Clone)]
 pub struct LifeCell {
     pub character: char,
+    pub color: style::Color,
+    pub 
     // coords: (usize, usize),
 }
 
@@ -43,7 +45,7 @@ impl LifeCell {
         _options: &ConwayLifeOptions,
         _rng: &mut rand::prelude::ThreadRng,
     ) -> Self {
-        Self { character: '*' }
+        Self { character: '*', color: style::Color::Green }
     }
 }
 
