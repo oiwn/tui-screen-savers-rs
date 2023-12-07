@@ -44,6 +44,10 @@ impl Buffer {
         }
     }
 
+    pub fn fill_with(&mut self, cell: &Cell) {
+        self.buffer.fill(*cell);
+    }
+
     pub fn get_size(&self) -> (usize, usize) {
         (self.width, self.height)
     }

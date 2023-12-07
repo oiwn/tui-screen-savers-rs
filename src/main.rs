@@ -5,12 +5,14 @@ use std::{io, process};
 mod buffer;
 mod common;
 mod life;
+mod maze;
 mod rain;
 
 const HELP: &str = "\
 Terminal screensavers\n
 ./matrix-rs matrix\n
-./matrix-rs life";
+./matrix-rs life\n
+./matrix-rs maze";
 
 #[derive(Debug)]
 struct AppArgs {
@@ -54,6 +56,14 @@ fn main() -> std::io::Result<()> {
                 .unwrap();
             let mut conway_life = life::ConwayLife::new(options);
             common::run_loop(&mut stdout, &mut conway_life, None)?
+        }
+        "maze" => {
+            let options = maze::MazeOptionsBuilder::default()
+                .screen_size((width as usize, height as usize))
+                .build()
+                .unwrap();
+            let mut wilson_maze = maze::Maze::new(options);
+            common::run_loop(&mut stdout, &mut wilson_maze, None)?
         }
         _ => {
             println!("Pick screensaver: [matrix, life]");
