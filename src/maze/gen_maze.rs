@@ -53,6 +53,7 @@ impl TerminalEffect for Maze {
     }
 
     fn update(&mut self) {
+        #[allow(unused_assignments)]
         let mut next_cells = HashMap::new();
 
         next_cells = self.cells.clone();
