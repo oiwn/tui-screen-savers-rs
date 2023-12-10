@@ -3,16 +3,13 @@ use crossterm::{self, cursor, execute, terminal};
 use std::{io, process};
 
 mod buffer;
+mod check;
 mod common;
 mod life;
 mod maze;
 mod rain;
 
-const HELP: &str = "\
-Terminal screensavers\n
-./matrix-rs matrix\n
-./matrix-rs life\n
-./matrix-rs maze";
+const HELP: &str = "Terminal screensavers, run with arg: matrix, life, maze";
 
 #[derive(Debug)]
 struct AppArgs {
@@ -32,9 +29,12 @@ fn main() -> std::io::Result<()> {
     let mut stdout = io::stdout();
 
     terminal::enable_raw_mode()?;
-    execute!(stdout, cursor::Hide)?;
-    execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide)?;
-    execute!(stdout, terminal::Clear(terminal::ClearType::All))?;
+    execute!(
+        stdout,
+        terminal::EnterAlternateScreen,
+        cursor::Hide,
+        terminal::Clear(terminal::ClearType::All)
+    )?;
 
     let (width, height) = terminal::size()?;
 
@@ -65,15 +65,28 @@ fn main() -> std::io::Result<()> {
             let mut wilson_maze = maze::Maze::new(options);
             common::run_loop(&mut stdout, &mut wilson_maze, None)?
         }
+        "check" => {
+            let options = check::CheckOptionsBuilder::default()
+                .screen_size((width as usize, height as usize))
+                .build()
+                .unwrap();
+            let mut check = check::Check::new(options);
+            common::run_loop(&mut stdout, &mut check, None)?
+        }
         _ => {
-            println!("Pick screensaver: [matrix, life]");
+            println!("Pick screensaver: [matrix, life, maze]");
             0.0
         }
     };
 
-    execute!(stdout, cursor::Show)?;
-    execute!(stdout, cursor::Show, terminal::LeaveAlternateScreen)?;
+    execute!(
+        stdout,
+        cursor::Show,
+        terminal::Clear(terminal::ClearType::All),
+        terminal::LeaveAlternateScreen,
+    )?;
     terminal::disable_raw_mode()?;
+
     println!("Frames per second: {}", fps);
     Ok(())
 }

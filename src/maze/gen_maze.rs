@@ -26,16 +26,20 @@ pub struct Maze {
 
 #[derive(Clone)]
 pub struct MazeCell {
-    pub character: char,
-    // coords: (usize, usize),
+    character: char,
+    is_wall: bool,
 }
 
 impl MazeCell {
     pub fn new(
+        is_wall: bool,
         _options: &MazeOptions,
         _rng: &mut rand::prelude::ThreadRng,
     ) -> Self {
-        Self { character: '#' }
+        Self {
+            character: '#',
+            is_wall,
+        }
     }
 }
 
@@ -67,11 +71,19 @@ impl Maze {
         let mut buffer = Buffer::new(options.screen_size.0, options.screen_size.1);
 
         buffer.fill_with(&Cell {
-            symbol: ' ',
+            symbol: '#',
             color: style::Color::Green,
             attr: style::Attribute::Reset,
         });
+        // Init all cells as walls
+        let mut cells = HashMap::new();
+        for x in 0..options.screen_size.0 {
+            for y in 0..options.screen_size.1 {
+                cells.insert((x, y), MazeCell::new(true, &options, &mut rng));
+            }
+        }
 
+        /*
         let maze = wilsons_algorithm(
             options.screen_size.0 as isize,
             options.screen_size.1 as isize,
@@ -79,11 +91,20 @@ impl Maze {
 
         let mut cells = HashMap::new();
         for (point_a, point_b) in maze {
-            let mc = MazeCell::new(&options, &mut rng);
+            let mc = MazeCell::new(false, &options, &mut rng);
             cells.insert((point_a.x as usize, point_a.y as usize), mc);
-            let mc = MazeCell::new(&options, &mut rng);
+            let mc = MazeCell::new(false, &options, &mut rng);
             cells.insert((point_b.x as usize, point_b.y as usize), mc);
+
+            // Also, mark the wall between point_a and point_b as path
+            let mid_x = (point_a.x + point_b.x) / 2;
+            let mid_y = (point_a.y + point_b.y) / 2;
+            cells.insert(
+                (mid_x as usize, mid_y as usize),
+                MazeCell::new(false, &options, &mut rng),
+            );
         }
+        */
 
         Self {
             options,
@@ -185,7 +206,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty_neighbors_by_index() {
+    fn some_test() {
         let _buf = Buffer::new(3, 3);
 
         for _x in 0..3 {
