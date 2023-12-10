@@ -62,15 +62,7 @@ where
         let queue = effect.get_diff();
         for item in queue.iter() {
             let (x, y, cell) = item;
-            // let actual_x = x + 1;
-            // let actual_y = y + 1;
-            // debug_assert!(
-            //     actual_x <= width as usize
-            //         && actual_y <= height as usize
-            //         && actual_x >= 1
-            //         && actual_y >= 1
-            // );
-            // stdout.queue(cursor::MoveTo(actual_x as u16, actual_y as u16))?;
+            debug_assert!(*x < width as usize && *y < height as usize);
             stdout.queue(cursor::MoveTo(*x as u16, *y as u16))?;
             stdout.queue(style::PrintStyledContent(
                 cell.symbol.with(cell.color).attribute(cell.attr),
