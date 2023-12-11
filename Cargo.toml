@@ -1,5 +1,5 @@
 [package]
-name = "tart"  # shortcut from Terminal Arts
+name = "tarts"  # shortcut from Terminal Arts
 version = "0.1.2"
 edition = "2021"
 
