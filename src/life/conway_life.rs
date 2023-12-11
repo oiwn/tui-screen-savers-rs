@@ -1,15 +1,15 @@
-/// The state of each cell in the next generation is determined by the states
-/// of that cell and its eight neighbors in the current generation:
-///
-/// Overpopulation:
-///     If a living cell is surrounded by more than three living cells, it dies.
-/// Underpopulation:
-///     If a living cell is surrounded by fewer than two living cells, it dies.
-/// Survival:
-///     If a living cell is surrounded by two or three living cells, it survives.
-/// Birth:
-///     If a dead cell is surrounded by exactly three living cells,
-///     it becomes a living cell.
+//! The state of each cell in the next generation is determined by the states
+//! of that cell and its eight neighbors in the current generation:
+//!
+//! Overpopulation:
+//!     If a living cell is surrounded by more than three living cells, it dies.
+//! Underpopulation:
+//!     If a living cell is surrounded by fewer than two living cells, it dies.
+//! Survival:
+//!     If a living cell is surrounded by two or three living cells, it survives.
+//! Birth:
+//!     If a dead cell is surrounded by exactly three living cells,
+//!     it becomes a living cell.
 use crate::buffer::{Buffer, Cell};
 use crate::common::TerminalEffect;
 use crossterm::style;
@@ -28,7 +28,7 @@ pub struct ConwayLifeOptions {
 #[derive(Clone)]
 pub struct LifeCell {
     pub character: char,
-    // coords: (usize, usize),
+    pub color: style::Color,
 }
 
 pub struct ConwayLife {
@@ -40,10 +40,14 @@ pub struct ConwayLife {
 
 impl LifeCell {
     pub fn new(
+        character: char,
         _options: &ConwayLifeOptions,
         _rng: &mut rand::prelude::ThreadRng,
     ) -> Self {
-        Self { character: '*' }
+        Self {
+            character,
+            color: style::Color::Green,
+        }
     }
 }
 
@@ -79,9 +83,13 @@ impl TerminalEffect for ConwayLife {
             } else {
                 // Birth: a dead cell with exactly 3 alive neighbors becomes alive
                 if alive_neighbors == 3 {
-                    next_cells.insert((nx, ny), LifeCell { character: 'X' });
+                    next_cells.insert(
+                        (nx, ny),
+                        LifeCell::new('*', &self.options, &mut self.rng),
+                    );
                     // Replace 'X' with the desired initial state
                 }
+                // here should process state of dead cell
             };
         }
 
@@ -105,7 +113,7 @@ impl ConwayLife {
 
         let mut cells = HashMap::new();
         for _ in 0..options.initial_cells {
-            let lc = LifeCell::new(&options, &mut rng);
+            let lc = LifeCell::new('*', &options, &mut rng);
             let x = rng.gen_range(0..options.screen_size.0);
             let y = rng.gen_range(0..options.screen_size.1);
 
@@ -141,7 +149,7 @@ fn insert_glider(
     y: usize,
     rotation: i32,
 ) {
-    let base_glider = vec![(1, 0), (2, 1), (0, 2), (1, 2), (2, 2)];
+    let base_glider = [(1, 0), (2, 1), (0, 2), (1, 2), (2, 2)];
 
     let rotated_glider = base_glider.iter().map(|&(dx, dy)| {
         match rotation {
@@ -154,7 +162,13 @@ fn insert_glider(
     });
 
     for coords in rotated_glider {
-        cells.insert(coords, LifeCell { character: '0' });
+        cells.insert(
+            coords,
+            LifeCell {
+                character: '0',
+                color: style::Color::DarkGreen,
+            },
+        );
     }
 }
 
@@ -174,7 +188,6 @@ pub fn get_neighbors_by_index(buf: &Buffer, index: usize) -> Vec<(usize, Cell)> 
                 let idx = nx as usize + ny as usize * buf.width;
                 let cell = buf.get(nx as usize, ny as usize);
                 if cell.symbol != ' ' {
-                    // neighbors.push((idx, &buf.buffer[idx]));
                     neighbors.push((idx, cell));
                 }
             }

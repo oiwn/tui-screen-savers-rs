@@ -35,13 +35,21 @@ impl Default for Cell {
 }
 
 impl Buffer {
+    // Indexing from 0: 0 1 2 3 4  | Square: 16
+    // Indexing from 1: 1 2 3 4 5  | Square: 25
+    // Need to check width of height are greater than zero
     pub fn new(width: usize, height: usize) -> Self {
         // fill buffer with dafault values
+        debug_assert!(width > 0 && height > 0);
         Self {
             width,
             height,
             buffer: vec![Cell::default(); width * height],
         }
+    }
+
+    pub fn fill_with(&mut self, cell: &Cell) {
+        self.buffer.fill(*cell);
     }
 
     pub fn get_size(&self) -> (usize, usize) {
@@ -70,6 +78,7 @@ impl Buffer {
         (i % self.width, i / self.width)
     }
 
+    // Return x, y and Cell
     pub fn diff(&self, other: &Buffer) -> Vec<(usize, usize, Cell)> {
         let prev_buffer = &self.buffer;
         let next_buffer = &other.buffer;
@@ -105,9 +114,12 @@ mod tests {
 
     #[test]
     fn create_new() {
-        let buf = Buffer::new(20, 10);
-        assert_eq!(buf.width, 20);
-        assert_eq!(buf.height, 10);
+        let buf = Buffer::new(5, 4);
+        assert_eq!(buf.width, 5);
+        assert_eq!(buf.height, 4);
+
+        let size = buf.buffer.len();
+        assert_eq!(size, 20);
     }
 
     #[test]
