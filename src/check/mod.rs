@@ -1,2 +1,2 @@
-pub mod check;
-pub use check::{Check, CheckOptionsBuilder};
+pub mod effect;
+pub use effect::{Check, CheckOptionsBuilder};

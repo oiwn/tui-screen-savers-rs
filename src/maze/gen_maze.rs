@@ -27,7 +27,7 @@ pub struct Maze {
 #[derive(Clone)]
 pub struct MazeCell {
     character: char,
-    is_wall: bool,
+    pub is_wall: bool,
 }
 
 impl MazeCell {
@@ -152,6 +152,7 @@ impl Point {
     }
 }
 
+#[allow(dead_code)]
 fn wilsons_algorithm(width: isize, height: isize) -> HashSet<(Point, Point)> {
     let mut rng = rand::thread_rng();
     let mut maze: HashSet<(Point, Point)> = HashSet::new();

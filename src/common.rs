@@ -5,7 +5,7 @@ use crossterm::{
     terminal, QueueableCommand,
 };
 use std::{
-    io::{Result, Write},
+    io::{BufWriter, Result, Write},
     time::Duration,
 };
 
@@ -53,6 +53,9 @@ where
     let mut frames_per_second = 0.0;
     let target_frame_duration = Duration::from_secs_f64(1.0 / 30.0_f64);
 
+    // wrap in buffer due to tests "run_loop_fps_gte_0" failing on CI/CD
+    let mut buffered_stdout = BufWriter::new(stdout);
+
     // main loop
     while is_running {
         let started_at: std::time::SystemTime = std::time::SystemTime::now();
@@ -63,12 +66,12 @@ where
         for item in queue.iter() {
             let (x, y, cell) = item;
             debug_assert!(*x < width as usize && *y < height as usize);
-            stdout.queue(cursor::MoveTo(*x as u16, *y as u16))?;
-            stdout.queue(style::PrintStyledContent(
+            buffered_stdout.queue(cursor::MoveTo(*x as u16, *y as u16))?;
+            buffered_stdout.queue(style::PrintStyledContent(
                 cell.symbol.with(cell.color).attribute(cell.attr),
             ))?;
         }
-        stdout.flush()?;
+        buffered_stdout.flush()?;
         effect.update();
 
         // stabilize fps if requred

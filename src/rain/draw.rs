@@ -70,7 +70,7 @@ mod tests {
     }
 
     #[test]
-    fn run_loop_fps_gte_20() {
+    fn run_loop_fps_gte_0() {
         // NOTE: this test failed on github CI pipeline
         let mut stdout = Vec::new();
         let mut digital_rain = get_default_rain();

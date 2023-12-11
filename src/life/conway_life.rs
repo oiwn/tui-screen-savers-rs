@@ -149,7 +149,7 @@ fn insert_glider(
     y: usize,
     rotation: i32,
 ) {
-    let base_glider = vec![(1, 0), (2, 1), (0, 2), (1, 2), (2, 2)];
+    let base_glider = [(1, 0), (2, 1), (0, 2), (1, 2), (2, 2)];
 
     let rotated_glider = base_glider.iter().map(|&(dx, dy)| {
         match rotation {
