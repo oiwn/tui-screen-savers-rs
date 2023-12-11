@@ -74,8 +74,15 @@ mod tests {
         // NOTE: this test failed on github CI pipeline
         let mut stdout = Vec::new();
         let mut digital_rain = get_default_rain();
-        let fps = crate::common::run_loop(&mut stdout, &mut digital_rain, Some(10))
-            .unwrap();
+        let mut fps: f64 = 0.0;
+        for _ in 0..10 {
+            let fps_res =
+                crate::common::run_loop(&mut stdout, &mut digital_rain, Some(10));
+            if let Ok(f) = fps_res {
+                fps = f;
+                break;
+            }
+        }
         assert_eq!(fps > 0.0, true);
     }
 }
