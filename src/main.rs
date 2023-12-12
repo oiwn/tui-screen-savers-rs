@@ -84,7 +84,7 @@ fn main() -> std::io::Result<()> {
         "matrix" => {
             let options = rain::digital_rain::DigitalRainOptionsBuilder::default()
                 .size((width, height))
-                .drops_range((100, 200))
+                .drops_range((120, 240))
                 .speed_range((2, 16))
                 .build()
                 .unwrap();

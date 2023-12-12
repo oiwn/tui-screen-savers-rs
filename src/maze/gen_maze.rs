@@ -2,8 +2,27 @@ use crate::buffer::{Buffer, Cell};
 use crate::common::TerminalEffect;
 use crossterm::style;
 use derive_builder::Builder;
+use once_cell::sync::Lazy;
 use rand::{seq::SliceRandom, Rng};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
+
+/// Characters in form of hashmap with label as key
+static CHARACTERS_MAP: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
+    let mut m = HashMap::new();
+    m.insert("punctuation", r#":."=*+-<>"#);
+    m.insert("katakana", "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ");
+    m.insert("other", "¦çﾘｸ");
+    m
+});
+
+/// Characters used to form kinda-canonical matrix effect
+static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
+    let mut v = Vec::new();
+    for (_, chars) in CHARACTERS_MAP.iter() {
+        v.append(&mut chars.chars().collect());
+    }
+    v
+});
 
 #[derive(Builder, Default, Debug)]
 #[builder(public, setter(into))]
@@ -11,45 +30,53 @@ pub struct MazeOptions {
     screen_size: (usize, usize),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-struct Point {
-    x: isize,
-    y: isize,
-}
-
 pub struct Maze {
     options: MazeOptions,
     buffer: Buffer,
-    cells: HashMap<(usize, usize), MazeCell>,
+    initial_walls: Buffer,
+    paths: HashSet<(usize, usize)>,
+    stack: VecDeque<(isize, isize)>,
+    maze_complete: bool,
     pub rng: rand::prelude::ThreadRng,
-}
-
-#[derive(Clone)]
-pub struct MazeCell {
-    character: char,
-    pub is_wall: bool,
-}
-
-impl MazeCell {
-    pub fn new(
-        is_wall: bool,
-        _options: &MazeOptions,
-        _rng: &mut rand::prelude::ThreadRng,
-    ) -> Self {
-        Self {
-            character: '#',
-            is_wall,
-        }
-    }
 }
 
 impl TerminalEffect for Maze {
     fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
-        let mut curr_buffer =
-            Buffer::new(self.options.screen_size.0, self.options.screen_size.1);
+        if self.maze_complete {
+            self.reset();
+            return Vec::new();
+        }
+        let mut curr_buffer = self.initial_walls.clone();
 
-        // fill current buffer
-        self.fill_buffer(&mut curr_buffer);
+        let mut modified_cells = HashSet::new();
+        // Randomly change 5 distinct cells
+        while modified_cells.len() < 5 {
+            let x = self.rng.gen_range(0..curr_buffer.width);
+            let y = self.rng.gen_range(0..curr_buffer.height);
+
+            if modified_cells.insert((x, y)) {
+                let random_char =
+                    CHARACTERS[self.rng.gen_range(0..CHARACTERS.len())];
+                let random_color = style::Color::Rgb {
+                    r: self.rng.gen_range(0..256) as u8,
+                    g: self.rng.gen_range(0..256) as u8,
+                    b: self.rng.gen_range(0..256) as u8,
+                };
+                self.initial_walls.set(
+                    x,
+                    y,
+                    Cell::new(random_char, random_color, style::Attribute::Reset),
+                );
+            }
+        }
+
+        for (x, y) in self.paths.iter() {
+            curr_buffer.set(
+                *x,
+                *y,
+                Cell::new(' ', style::Color::Green, style::Attribute::Reset),
+            )
+        }
 
         let diff = self.buffer.diff(&curr_buffer);
         self.buffer = curr_buffer;
@@ -57,149 +84,152 @@ impl TerminalEffect for Maze {
     }
 
     fn update(&mut self) {
-        #[allow(unused_assignments)]
-        let mut next_cells = HashMap::new();
+        if self.maze_complete {
+            return;
+        }
 
-        next_cells = self.cells.clone();
-        self.cells = next_cells;
+        if let Some((x, y)) = self.stack.pop_back() {
+            let directions = [(2, 0), (0, 2), (-2, 0), (0, -2)]; // Skip one cell to maintain walls
+            let mut shuffled_directions = directions;
+            shuffled_directions.shuffle(&mut self.rng);
+
+            let mut moved = false;
+            for &(dx, dy) in &shuffled_directions {
+                let new_x = x + dx;
+                let new_y = y + dy;
+
+                // Check the cell to be carved and the wall between the current and new cell
+                if self.is_valid_cell(new_x, new_y)
+                    && self.is_valid_cell(x + dx / 2, y + dy / 2)
+                    && !self.paths.contains(&(new_x as usize, new_y as usize))
+                {
+                    // Carve path for both the new cell and the wall between
+                    self.carve_path(new_x, new_y);
+                    self.carve_path(x + dx / 2, y + dy / 2);
+                    // Push the current position back for backtracking
+                    self.stack.push_back((x, y));
+                    self.stack.push_back((new_x, new_y)); // Push the new position
+                    moved = true;
+                    break;
+                }
+            }
+
+            if !moved {
+                // If we didn't move, it means we're at a dead-end and need to backtrack
+                self.stack.pop_back();
+            }
+        } else {
+            // If the stack is empty, the maze is complete
+            self.maze_complete = true;
+        }
     }
+
+    /*
+    fn update(&mut self) {
+        if self.maze_complete {
+            return;
+        }
+
+        if let Some((x, y)) = self.stack.pop_back() {
+            let directions = [(1, 0), (0, 1), (-1, 0), (0, -1)];
+            let mut shuffled_directions = directions;
+            shuffled_directions.shuffle(&mut self.rng);
+
+            let mut moved = false;
+            for &(dx, dy) in &shuffled_directions {
+                let new_x = x + dx;
+                let new_y = y + dy;
+
+                if self.is_valid_cell(new_x, new_y)
+                    && !self.paths.contains(&(new_x as usize, new_y as usize))
+                {
+                    self.carve_path(new_x, new_y);
+                    // Push the current position back for backtracking
+                    self.stack.push_back((x, y));
+                    self.stack.push_back((new_x, new_y)); // Push the new position
+                    moved = true;
+                    break;
+                }
+            }
+
+            if !moved {
+                // If we didn't move, it means we're at a dead-end and need to backtrack
+                self.stack.pop_back();
+            }
+        } else {
+            // If the stack is empty, the maze is complete
+            self.maze_complete = true;
+        }
+    }
+    */
 }
 
 impl Maze {
     pub fn new(options: MazeOptions) -> Self {
         let mut rng = rand::thread_rng();
-        let mut buffer = Buffer::new(options.screen_size.0, options.screen_size.1);
+        let buffer = Buffer::new(options.screen_size.0, options.screen_size.1);
 
-        buffer.fill_with(&Cell {
-            symbol: '#',
-            color: style::Color::Green,
-            attr: style::Attribute::Reset,
-        });
-        // Init all cells as walls
-        let mut cells = HashMap::new();
-        for x in 0..options.screen_size.0 {
-            for y in 0..options.screen_size.1 {
-                cells.insert((x, y), MazeCell::new(true, &options, &mut rng));
-            }
-        }
+        let paths = HashSet::new();
+        let start_x = rng.gen_range(0..options.screen_size.0 as isize);
+        let start_y = rng.gen_range(0..options.screen_size.1 as isize);
+        let mut stack = VecDeque::new();
+        stack.push_back((start_x, start_y));
 
-        /*
-        let maze = wilsons_algorithm(
-            options.screen_size.0 as isize,
-            options.screen_size.1 as isize,
-        );
-
-        let mut cells = HashMap::new();
-        for (point_a, point_b) in maze {
-            let mc = MazeCell::new(false, &options, &mut rng);
-            cells.insert((point_a.x as usize, point_a.y as usize), mc);
-            let mc = MazeCell::new(false, &options, &mut rng);
-            cells.insert((point_b.x as usize, point_b.y as usize), mc);
-
-            // Also, mark the wall between point_a and point_b as path
-            let mid_x = (point_a.x + point_b.x) / 2;
-            let mid_y = (point_a.y + point_b.y) / 2;
-            cells.insert(
-                (mid_x as usize, mid_y as usize),
-                MazeCell::new(false, &options, &mut rng),
-            );
-        }
-        */
+        let mut initial_walls = buffer.clone();
+        fill_initial_walls(&mut initial_walls);
 
         Self {
             options,
             buffer,
-            cells,
+            initial_walls,
+            paths,
+            stack,
+            maze_complete: false,
             rng,
         }
     }
 
-    pub fn fill_buffer(&mut self, buffer: &mut Buffer) {
-        for ((x, y), cell) in self.cells.iter() {
-            buffer.set(
-                *x,
-                *y,
-                Cell::new(
-                    cell.character,
-                    style::Color::Green,
-                    style::Attribute::Bold,
-                ),
-            )
-        }
+    pub fn reset(&mut self) {
+        fill_initial_walls(&mut self.initial_walls);
+        self.maze_complete = false;
+        self.paths.clear();
+        self.stack.clear();
+        self.rng = rand::thread_rng();
+
+        let start_x = self.rng.gen_range(0..self.options.screen_size.0 as isize);
+        let start_y = self.rng.gen_range(0..self.options.screen_size.1 as isize);
+        self.stack.push_back((start_x, start_y));
+    }
+
+    fn is_valid_cell(&self, x: isize, y: isize) -> bool {
+        x >= 0
+            && y >= 0
+            && (x as usize) < self.options.screen_size.0
+            && (y as usize) < self.options.screen_size.1
+    }
+
+    fn carve_path(&mut self, x: isize, y: isize) {
+        self.paths.insert((x as usize, y as usize));
     }
 }
 
-impl Point {
-    fn neighbors(&self) -> Vec<Point> {
-        vec![
-            Point {
-                x: self.x - 1,
-                y: self.y,
-            },
-            Point {
-                x: self.x + 1,
-                y: self.y,
-            },
-            Point {
-                x: self.x,
-                y: self.y - 1,
-            },
-            Point {
-                x: self.x,
-                y: self.y + 1,
-            },
-        ]
-    }
-}
-
-#[allow(dead_code)]
-fn wilsons_algorithm(width: isize, height: isize) -> HashSet<(Point, Point)> {
+fn fill_initial_walls(buffer: &mut Buffer) {
     let mut rng = rand::thread_rng();
-    let mut maze: HashSet<(Point, Point)> = HashSet::new();
-    let mut visited = HashSet::new();
-
-    // Start with a random cell
-    let start = Point {
-        x: rng.gen_range(0..width),
-        y: rng.gen_range(0..height),
-    };
-    visited.insert(start);
-
-    for _ in 0..width * height {
-        let mut current = Point {
-            x: rng.gen_range(0..width),
-            y: rng.gen_range(0..height),
-        };
-        if visited.contains(&current) {
-            continue;
-        }
-
-        let mut path = vec![current];
-        while !visited.contains(&current) {
-            let neighbors = current
-                .neighbors()
-                .into_iter()
-                .filter(|p| p.x >= 0 && p.x < width && p.y >= 0 && p.y < height)
-                .collect::<Vec<_>>();
-            current = *neighbors.choose(&mut rng).unwrap();
-            if let Some(pos) = path.iter().position(|&p| p == current) {
-                path.truncate(pos + 1);
-            } else {
-                path.push(current);
-            }
-        }
-
-        for window in path.windows(2) {
-            if let [a, b] = *window {
-                maze.insert((a, b));
-                maze.insert((b, a));
-                visited.insert(a);
-                visited.insert(b);
-            }
+    for y in 0..buffer.height {
+        for x in 0..buffer.width {
+            let random_char = CHARACTERS[rng.gen_range(0..CHARACTERS.len())];
+            let random_color = style::Color::Rgb {
+                r: rng.gen_range(0..120) as u8,
+                g: rng.gen_range(0..256) as u8,
+                b: rng.gen_range(0..120) as u8,
+            };
+            buffer.set(
+                x,
+                y,
+                Cell::new(random_char, random_color, style::Attribute::Bold),
+            );
         }
     }
-
-    maze
 }
 
 #[cfg(test)]
@@ -207,14 +237,46 @@ mod tests {
     use super::*;
 
     #[test]
-    fn some_test() {
-        let _buf = Buffer::new(3, 3);
+    fn check_initial_state() {
+        let options = MazeOptionsBuilder::default()
+            .screen_size((3, 3))
+            .build()
+            .unwrap();
+        let maze = Maze::new(options);
 
-        for _x in 0..3 {
-            for _y in 0..3 {
-                // let res = get_neighbors_by_index(&buf, buf.index_of(x, y));
-                // assert!(res.is_empty());
+        // buffer correctly initialized
+        let mut initialized_cells = 0;
+        for cell in maze.buffer.iter() {
+            if cell.symbol != ' ' {
+                initialized_cells += 1;
             }
         }
+        assert_eq!(initialized_cells, 9);
+
+        // path and stack are empty, and maze is not completed
+        assert!(maze.paths.is_empty());
+        assert!(maze.stack.len() == 1);
+        assert!(!maze.maze_complete);
+    }
+
+    #[test]
+    fn check_flow() {
+        let options = MazeOptionsBuilder::default()
+            .screen_size((3, 3))
+            .build()
+            .unwrap();
+        let mut maze = Maze::new(options);
+        maze.update();
+        let diff = maze.get_diff();
+        assert_eq!(diff.len(), 1);
+
+        // buffer correctly processed
+        let mut initialized_cells = 0;
+        for cell in maze.buffer.iter() {
+            if cell.symbol != ' ' {
+                initialized_cells += 1;
+            }
+        }
+        assert_eq!(initialized_cells, 8);
     }
 }

@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rand;
 use std::time::Duration;
-use tui_savers_rs::{
+use tarts::{
     common::{self, TerminalEffect},
     rain::{digital_rain, rain_drop},
 };

@@ -1,6 +1,8 @@
 /target
 Cargo.lock
-matrix-rs
 
 # profiling/coverage garbage
 *.profraw
+
+# misc
+tags
