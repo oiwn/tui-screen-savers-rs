@@ -8,6 +8,7 @@ pub struct Cell {
 }
 
 /// Buffer implementation, coordinates unlike in crossterm started from [0, 0]
+#[derive(Clone)]
 pub struct Buffer {
     pub width: usize,
     pub height: usize,
@@ -35,6 +36,7 @@ impl Default for Cell {
 }
 
 impl Buffer {
+    // Keep in mind!
     // Indexing from 0: 0 1 2 3 4  | Square: 16
     // Indexing from 1: 1 2 3 4 5  | Square: 25
     // Need to check width of height are greater than zero
@@ -102,10 +104,6 @@ impl Buffer {
     pub fn iter(&self) -> std::slice::Iter<Cell> {
         self.buffer.iter()
     }
-
-    // pub fn iter_mut(&mut self) -> std::slice::IterMut<Cell> {
-    //     self.buffer.iter_mut()
-    // }
 }
 
 #[cfg(test)]

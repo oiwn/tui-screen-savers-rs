@@ -51,9 +51,10 @@ where
 
     let mut is_running = true;
     let mut frames_per_second = 0.0;
-    let target_frame_duration = Duration::from_secs_f64(1.0 / 30.0_f64);
+    let target_frame_duration = Duration::from_secs_f64(1.0 / 60.0_f64);
 
     // wrap in buffer due to tests "run_loop_fps_gte_0" failing on CI/CD
+    // NOTE: 12/Dec/2023 issue with tests of CI/CD still not resolved
     let mut buffered_stdout = BufWriter::new(stdout);
 
     // main loop
