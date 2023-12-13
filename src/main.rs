@@ -1,8 +1,9 @@
 //! # tarts
 //!
-//! `tarts` or TerminalArts is a collection of terminal-based screen savers written in Rust.
-//! This crate provides a variety of screen savers like "Matrix Rain", "Conway's Game of Life",
-//! and "Maze Generation" (not yet), all running directly in your terminal.
+//! `tarts` or TerminalArts is a collection of terminal-based screen savers written
+//! in Rust. This crate provides a variety of screen savers like "Matrix Rain",
+//! "Conway's Game of Life", and "Maze Generation" (not yet), all running directly
+//! in your terminal.
 //!
 //! ## Features
 //!
@@ -12,7 +13,8 @@
 //!
 //! ## Usage
 //!
-//! To use the screen savers, run the executable with the desired screen saver's name as an argument:
+//! To use the screen savers, run the executable with the desired screen saver's
+//! name as an argument:
 //!
 //! ```bash
 //! tarts matrix
@@ -30,11 +32,13 @@
 //!
 //! ## Configuration
 //!
-//! The screen savers can be configured via command line arguments (planning to add configuration file).
+//! The screen savers can be configured via command line arguments
+//! (planning to add configuration file).
 //!
 //! ## Contributing
 //!
-//! Contributions are welcome! Please feel free to submit pull requests, report bugs, and suggest features.
+//! Contributions are welcome! Please feel free to submit pull requests,
+//! report bugs, and suggest features.
 //!
 //! ## License
 //!
