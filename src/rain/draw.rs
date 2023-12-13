@@ -75,6 +75,9 @@ mod tests {
         let mut stdout = Vec::new();
         let mut digital_rain = get_default_rain();
         let mut fps: f64 = 0.0;
+        fps = crate::common::run_loop(&mut stdout, &mut digital_rain, Some(10));
+
+        /*
         for _ in 0..10 {
             let fps_res =
                 crate::common::run_loop(&mut stdout, &mut digital_rain, Some(10));
@@ -83,6 +86,7 @@ mod tests {
                 break;
             }
         }
+        */
         assert_eq!(fps > 0.0, true);
     }
 }
