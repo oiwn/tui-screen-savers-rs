@@ -69,9 +69,9 @@ mod tests {
         let _ = crate::common::run_loop(&mut stdout, &mut digital_rain, Some(10));
     }
 
-    // #[test]
+    // NOTE: this test failed on github CI pipeline
+    #[test]
     fn run_loop_fps_gte_0() {
-        // NOTE: this test failed on github CI pipeline
         let mut stdout = Vec::new();
         let mut digital_rain = get_default_rain();
         let mut fps: f64 = 0.0;

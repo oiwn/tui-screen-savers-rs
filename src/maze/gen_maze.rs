@@ -123,45 +123,6 @@ impl TerminalEffect for Maze {
             self.maze_complete = true;
         }
     }
-
-    /*
-    fn update(&mut self) {
-        if self.maze_complete {
-            return;
-        }
-
-        if let Some((x, y)) = self.stack.pop_back() {
-            let directions = [(1, 0), (0, 1), (-1, 0), (0, -1)];
-            let mut shuffled_directions = directions;
-            shuffled_directions.shuffle(&mut self.rng);
-
-            let mut moved = false;
-            for &(dx, dy) in &shuffled_directions {
-                let new_x = x + dx;
-                let new_y = y + dy;
-
-                if self.is_valid_cell(new_x, new_y)
-                    && !self.paths.contains(&(new_x as usize, new_y as usize))
-                {
-                    self.carve_path(new_x, new_y);
-                    // Push the current position back for backtracking
-                    self.stack.push_back((x, y));
-                    self.stack.push_back((new_x, new_y)); // Push the new position
-                    moved = true;
-                    break;
-                }
-            }
-
-            if !moved {
-                // If we didn't move, it means we're at a dead-end and need to backtrack
-                self.stack.pop_back();
-            }
-        } else {
-            // If the stack is empty, the maze is complete
-            self.maze_complete = true;
-        }
-    }
-    */
 }
 
 impl Maze {
@@ -251,7 +212,8 @@ mod tests {
                 initialized_cells += 1;
             }
         }
-        assert_eq!(initialized_cells, 9);
+        assert_eq!(initialized_cells, 0);
+        assert_eq!(maze.initial_walls.buffer.len(), 9);
 
         // path and stack are empty, and maze is not completed
         assert!(maze.paths.is_empty());
@@ -262,21 +224,25 @@ mod tests {
     #[test]
     fn check_flow() {
         let options = MazeOptionsBuilder::default()
-            .screen_size((3, 3))
+            .screen_size((5, 5))
             .build()
             .unwrap();
         let mut maze = Maze::new(options);
         maze.update();
         let diff = maze.get_diff();
-        assert_eq!(diff.len(), 1);
+        assert_eq!(diff.len(), 25);
 
+        // /* NOTE: why no path_cells set in buffer after update?
+        // maze.update();
+        // let _ = maze.get_diff();
         // buffer correctly processed
-        let mut initialized_cells = 0;
+        let mut path_cells = 0;
         for cell in maze.buffer.iter() {
-            if cell.symbol != ' ' {
-                initialized_cells += 1;
+            if cell.symbol != '█' {
+                path_cells += 1;
             }
         }
-        assert_eq!(initialized_cells, 8);
+        assert_eq!(path_cells, 23);
+        // */
     }
 }

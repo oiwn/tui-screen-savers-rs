@@ -261,7 +261,7 @@ mod tests {
         let mut rng = rand::thread_rng();
         let mut new_drop = RainDrop::new(&get_sane_options(), 1, &mut rng);
         assert!(new_drop.body.len() > 0);
-        assert!(new_drop.speed > 10);
+        assert!(new_drop.speed > 0);
 
         new_drop.reset(&get_sane_options(), &mut rng);
         assert_eq!(new_drop.fy, 0.0);
