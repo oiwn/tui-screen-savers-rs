@@ -50,7 +50,7 @@ impl TerminalEffect for Maze {
 
         let mut modified_cells = HashSet::new();
         // Randomly change 5 distinct cells
-        while modified_cells.len() < 5 {
+        while modified_cells.len() < 3 {
             let x = self.rng.gen_range(0..curr_buffer.width);
             let y = self.rng.gen_range(0..curr_buffer.height);
 
@@ -58,14 +58,14 @@ impl TerminalEffect for Maze {
                 let random_char =
                     CHARACTERS[self.rng.gen_range(0..CHARACTERS.len())];
                 let random_color = style::Color::Rgb {
-                    r: self.rng.gen_range(0..256) as u8,
+                    r: self.rng.gen_range(0..200) as u8,
                     g: self.rng.gen_range(0..256) as u8,
-                    b: self.rng.gen_range(0..256) as u8,
+                    b: self.rng.gen_range(0..200) as u8,
                 };
                 self.initial_walls.set(
                     x,
                     y,
-                    Cell::new(random_char, random_color, style::Attribute::Reset),
+                    Cell::new(random_char, random_color, style::Attribute::Bold),
                 );
             }
         }
@@ -74,7 +74,7 @@ impl TerminalEffect for Maze {
             curr_buffer.set(
                 *x,
                 *y,
-                Cell::new(' ', style::Color::Green, style::Attribute::Reset),
+                Cell::new('█', style::Color::White, style::Attribute::Reset),
             )
         }
 
