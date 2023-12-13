@@ -6,8 +6,9 @@ Implementing simple "matrix" or digital rain screensaver in Rust language.
 
 ## Currently implemented:
 
-- [ ] Digital Rain also know as "Matrix"
-- [ ] Conway's life game
+- [x] Digital Rain also know as "Matrix"
+- [x] Conway's life game
+- [x] DFS Maze generation
 
 ## Installation
 
@@ -22,13 +23,14 @@ cargo install tarts
 Run with parameters:
 
 ```bash
-targs matrix
-targs life
+tarts matrix
+tarts life
+tarts maze
 ```
 
 ### More?
 
-- Args parser to run with parameters
+- Args parser to run with configuration (yaml or something)
 - add rotating donut? https://www.a1k0n.net/2011/07/20/donut-math.html
 - add pipes? https://asciinema.org/a/427066
 - add cellular automation like https://www.reddit.com/r/neovim/comments/z70mg3/cellularautomatonnvim_my_first_plugin/
