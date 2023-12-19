@@ -77,7 +77,9 @@ where
 
         // stabilize fps if requred
         let ended_at = std::time::SystemTime::now();
-        let delta = ended_at.duration_since(started_at).unwrap();
+        let delta = ended_at
+            .duration_since(started_at)
+            .unwrap_or(std::time::Duration::from_secs(0));
         if delta < target_frame_duration {
             std::thread::sleep(target_frame_duration - delta);
         };
