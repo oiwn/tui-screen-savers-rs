@@ -36,7 +36,6 @@ pub struct ConwayLifeOptions {
 pub struct LifeCell {
     pub character: char,
     pub color: style::Color,
-    pub gen: usize,
 }
 
 pub struct ConwayLife {
@@ -48,26 +47,21 @@ pub struct ConwayLife {
 }
 
 impl LifeCell {
-    pub fn new(character: char, gen: usize) -> Self {
+    pub fn new(character: char) -> Self {
         Self {
             character,
             color: style::Color::Rgb { r: 0, g: 255, b: 0 },
-            gen,
         }
     }
 
-    // Update the generation with wrapping at 256
-    pub fn update_gen(&mut self, rng: &mut rand::prelude::ThreadRng) {
-        self.gen = (self.gen + 1) % 255;
-        self.update_color_and_char(rng); // Assuming this updates color/char based on gen
-    }
-
-    pub fn update_color_and_char(&mut self, rng: &mut rand::prelude::ThreadRng) {
-        self.gen += 1;
-        match self.gen {
+    pub fn update_color_and_char(
+        &mut self,
+        rng: &mut rand::prelude::ThreadRng,
+        current_gen: u8,
+    ) {
+        let green_color = 255_u8.wrapping_sub(current_gen);
+        match current_gen {
             0..=250 => {
-                let gen_u8: u8 = (self.gen % 255) as u8;
-                let green_color = 255_u8.wrapping_sub(gen_u8);
                 self.color = style::Color::Rgb {
                     r: 0,
                     g: green_color,
@@ -78,7 +72,7 @@ impl LifeCell {
             _ => {
                 self.color = style::Color::Rgb {
                     r: 128,
-                    g: 0,
+                    g: green_color,
                     b: 128,
                 }; // Purple
                 let random_index = rng.gen_range(0..DEAD_CELLS_CHARS.len());
@@ -117,7 +111,8 @@ impl TerminalEffect for ConwayLife {
             let alive_neighbors = neighbors.len();
 
             if let Some(cell) = self.cells.get_mut(&(nx, ny)) {
-                cell.update_gen(&mut self.rng);
+                cell.update_color_and_char(&mut self.rng, self.current_gen);
+
                 // Survival: an alive cell with 2 or 3 alive neighbors stays alive
                 if alive_neighbors == 2 || alive_neighbors == 3 {
                     next_cells.insert((nx, ny), cell.clone());
@@ -125,9 +120,8 @@ impl TerminalEffect for ConwayLife {
             } else {
                 // Birth: a dead cell with exactly 3 alive neighbors becomes alive
                 if alive_neighbors == 3 {
-                    let mut new_cell =
-                        LifeCell::new('*', self.current_gen.try_into().unwrap());
-                    new_cell.update_gen(&mut self.rng); // Initialize generation and update color/char
+                    let mut new_cell = LifeCell::new('*');
+                    new_cell.update_color_and_char(&mut self.rng, self.current_gen); // Initialize generation and update color/char
                     next_cells.insert((nx, ny), new_cell);
                     // Replace 'X' with the desired initial state
                 }
@@ -155,7 +149,7 @@ impl ConwayLife {
 
         let mut cells = HashMap::new();
         for _ in 0..options.initial_cells {
-            let lc = LifeCell::new('*', 0);
+            let lc = LifeCell::new('*');
             let x = rng.gen_range(0..options.screen_size.0);
             let y = rng.gen_range(0..options.screen_size.1);
 
@@ -201,8 +195,7 @@ fn insert_glider(
         }
     });
 
-    let gen_u8: u8 = (current_gen % 255) as u8;
-    let green_color = 255_u8.wrapping_sub(gen_u8);
+    let green_color = 255_u8.wrapping_sub(current_gen);
 
     for coords in rotated_glider {
         cells.insert(
@@ -214,7 +207,6 @@ fn insert_glider(
                     g: green_color,
                     b: 0,
                 },
-                gen: 0,
             },
         );
     }
