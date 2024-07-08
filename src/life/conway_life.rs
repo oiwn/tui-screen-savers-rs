@@ -14,8 +14,15 @@ use crate::buffer::{Buffer, Cell};
 use crate::common::TerminalEffect;
 use crossterm::style;
 use derive_builder::Builder;
+use once_cell::sync::Lazy;
 use rand::Rng;
 use std::collections::HashMap;
+
+static DEAD_CELLS_CHARS: Lazy<Vec<char>> = Lazy::new(|| {
+    let characters = "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ";
+    let char_vec: Vec<char> = characters.chars().collect();
+    char_vec
+});
 
 #[derive(Builder, Default, Debug)]
 #[builder(public, setter(into))]
@@ -29,6 +36,7 @@ pub struct ConwayLifeOptions {
 pub struct LifeCell {
     pub character: char,
     pub color: style::Color,
+    pub gen: usize,
 }
 
 pub struct ConwayLife {
@@ -36,17 +44,47 @@ pub struct ConwayLife {
     buffer: Buffer,
     cells: HashMap<(usize, usize), LifeCell>,
     pub rng: rand::prelude::ThreadRng,
+    pub current_gen: u8,
 }
 
 impl LifeCell {
-    pub fn new(
-        character: char,
-        _options: &ConwayLifeOptions,
-        _rng: &mut rand::prelude::ThreadRng,
-    ) -> Self {
+    pub fn new(character: char, gen: usize) -> Self {
         Self {
             character,
-            color: style::Color::Green,
+            color: style::Color::Rgb { r: 0, g: 255, b: 0 },
+            gen,
+        }
+    }
+
+    // Update the generation with wrapping at 256
+    pub fn update_gen(&mut self, rng: &mut rand::prelude::ThreadRng) {
+        self.gen = (self.gen + 1) % 255;
+        self.update_color_and_char(rng); // Assuming this updates color/char based on gen
+    }
+
+    pub fn update_color_and_char(&mut self, rng: &mut rand::prelude::ThreadRng) {
+        self.gen += 1;
+        match self.gen {
+            0..=250 => {
+                let gen_u8: u8 = (self.gen % 255) as u8;
+                let green_color = 255_u8.wrapping_sub(gen_u8);
+                self.color = style::Color::Rgb {
+                    r: 0,
+                    g: green_color,
+                    b: 0,
+                }; // Green
+                self.character = '*';
+            }
+            _ => {
+                self.color = style::Color::Rgb {
+                    r: 128,
+                    g: 0,
+                    b: 128,
+                }; // Purple
+                let random_index = rng.gen_range(0..DEAD_CELLS_CHARS.len());
+                self.character =
+                    DEAD_CELLS_CHARS.get(random_index).unwrap().clone();
+            }
         }
     }
 }
@@ -67,6 +105,9 @@ impl TerminalEffect for ConwayLife {
     fn update(&mut self) {
         let mut next_cells = HashMap::new();
 
+        // update current generation counter
+        self.current_gen = (self.current_gen + 1) % 255;
+
         for (index, _) in self.buffer.iter().enumerate() {
             let neighbors = get_neighbors_by_index(&self.buffer, index);
             if neighbors.is_empty() {
@@ -75,7 +116,8 @@ impl TerminalEffect for ConwayLife {
             let (nx, ny) = self.buffer.pos_of(index);
             let alive_neighbors = neighbors.len();
 
-            if let Some(cell) = self.cells.get(&(nx, ny)) {
+            if let Some(cell) = self.cells.get_mut(&(nx, ny)) {
+                cell.update_gen(&mut self.rng);
                 // Survival: an alive cell with 2 or 3 alive neighbors stays alive
                 if alive_neighbors == 2 || alive_neighbors == 3 {
                     next_cells.insert((nx, ny), cell.clone());
@@ -83,13 +125,13 @@ impl TerminalEffect for ConwayLife {
             } else {
                 // Birth: a dead cell with exactly 3 alive neighbors becomes alive
                 if alive_neighbors == 3 {
-                    next_cells.insert(
-                        (nx, ny),
-                        LifeCell::new('*', &self.options, &mut self.rng),
-                    );
+                    let mut new_cell =
+                        LifeCell::new('*', self.current_gen.try_into().unwrap());
+                    new_cell.update_gen(&mut self.rng); // Initialize generation and update color/char
+                    next_cells.insert((nx, ny), new_cell);
                     // Replace 'X' with the desired initial state
                 }
-                // here should process state of dead cell
+                // TODO:  here should process state of dead cell
             };
         }
 
@@ -100,7 +142,7 @@ impl TerminalEffect for ConwayLife {
             let x = self.rng.gen_range(2..self.buffer.width - glider_size + 1);
             let y = self.rng.gen_range(2..self.buffer.height - glider_size + 1);
             let rotation = [0, 90, 180, 270][self.rng.gen_range(0..4)];
-            insert_glider(&mut next_cells, x, y, rotation);
+            insert_glider(&mut next_cells, x, y, rotation, self.current_gen);
         }
         self.cells = next_cells;
     }
@@ -113,7 +155,7 @@ impl ConwayLife {
 
         let mut cells = HashMap::new();
         for _ in 0..options.initial_cells {
-            let lc = LifeCell::new('*', &options, &mut rng);
+            let lc = LifeCell::new('*', 0);
             let x = rng.gen_range(0..options.screen_size.0);
             let y = rng.gen_range(0..options.screen_size.1);
 
@@ -125,6 +167,7 @@ impl ConwayLife {
             buffer,
             cells,
             rng,
+            current_gen: 0,
         }
     }
 
@@ -133,11 +176,7 @@ impl ConwayLife {
             buffer.set(
                 *x,
                 *y,
-                Cell::new(
-                    cell.character,
-                    style::Color::Green,
-                    style::Attribute::Bold,
-                ),
+                Cell::new(cell.character, cell.color, style::Attribute::Bold),
             )
         }
     }
@@ -148,6 +187,7 @@ fn insert_glider(
     x: usize,
     y: usize,
     rotation: i32,
+    current_gen: u8,
 ) {
     let base_glider = [(1, 0), (2, 1), (0, 2), (1, 2), (2, 2)];
 
@@ -161,12 +201,20 @@ fn insert_glider(
         }
     });
 
+    let gen_u8: u8 = (current_gen % 255) as u8;
+    let green_color = 255_u8.wrapping_sub(gen_u8);
+
     for coords in rotated_glider {
         cells.insert(
             coords,
             LifeCell {
                 character: '0',
-                color: style::Color::DarkGreen,
+                color: style::Color::Rgb {
+                    r: 0,
+                    g: green_color,
+                    b: 0,
+                },
+                gen: 0,
             },
         );
     }
