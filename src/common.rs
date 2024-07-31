@@ -68,6 +68,7 @@ where
         let started_at: std::time::SystemTime = std::time::SystemTime::now();
         is_running = process_input()?;
 
+        #[allow(clippy::single_match)]
         while event::poll(Duration::from_millis(10))? {
             match event::read()? {
                 event::Event::Resize(new_width, new_height) => {

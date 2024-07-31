@@ -76,8 +76,7 @@ impl LifeCell {
                     b: 128,
                 }; // Purple
                 let random_index = rng.gen_range(0..DEAD_CELLS_CHARS.len());
-                self.character =
-                    DEAD_CELLS_CHARS.get(random_index).unwrap().clone();
+                self.character = *DEAD_CELLS_CHARS.get(random_index).unwrap();
             }
         }
     }
