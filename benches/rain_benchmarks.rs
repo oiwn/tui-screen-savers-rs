@@ -8,7 +8,7 @@ use tarts::{
 
 fn get_sane_options() -> digital_rain::DigitalRainOptions {
     digital_rain::DigitalRainOptionsBuilder::default()
-        .size((80, 40))
+        .screen_size((80, 40))
         .drops_range((10, 20))
         .speed_range((2, 16))
         .build()

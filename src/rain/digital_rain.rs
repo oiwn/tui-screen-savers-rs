@@ -8,9 +8,9 @@ use derive_builder::Builder;
 use rand::{self, Rng};
 use std::time::Duration;
 
-#[derive(Builder, Default, Debug, PartialEq)]
+#[derive(Builder, Default, Debug, PartialEq, Clone)]
 pub struct DigitalRainOptions {
-    pub size: (u16, u16),
+    pub screen_size: (u16, u16),
     pub drops_range: (u16, u16),
     pub speed_range: (u16, u16),
 }
@@ -51,6 +51,15 @@ impl TerminalEffect for DigitalRain {
         }
 
         self.add_one();
+    }
+
+    fn update_size(&mut self, width: u16, height: u16) {
+        self.options.screen_size = (width, height);
+    }
+
+    fn reset(&mut self) {
+        let new_effect = DigitalRain::new(self.options.clone());
+        *self = new_effect;
     }
 }
 
@@ -178,12 +187,12 @@ impl DigitalRain {
 impl DigitalRainOptions {
     #[inline]
     pub fn get_width(&self) -> u16 {
-        self.size.0
+        self.screen_size.0
     }
 
     #[inline]
     pub fn get_height(&self) -> u16 {
-        self.size.1
+        self.screen_size.1
     }
 
     #[inline]
@@ -211,9 +220,9 @@ impl DigitalRainOptions {
 mod tests {
     use super::*;
 
-    fn get_sane_options() -> DigitalRainOptions {
+    fn get_sane_default_options() -> DigitalRainOptions {
         DigitalRainOptionsBuilder::default()
-            .size((100, 100))
+            .screen_size((100, 100))
             .drops_range((20, 30))
             .speed_range((10, 20))
             .build()
@@ -222,20 +231,20 @@ mod tests {
 
     #[test]
     fn create_new() {
-        let foo = DigitalRain::new(get_sane_options());
+        let foo = DigitalRain::new(get_sane_default_options());
         assert_eq!(foo.rain_drops.len(), 20);
     }
 
     #[test]
     fn no_diff() {
-        let mut foo = DigitalRain::new(get_sane_options());
+        let mut foo = DigitalRain::new(get_sane_default_options());
         let q = foo.get_diff();
         assert!(q.len() == 0);
     }
 
     #[test]
-    fn some_diff_and_update() {
-        let mut foo = DigitalRain::new(get_sane_options());
+    fn same_diff_and_update() {
+        let mut foo = DigitalRain::new(get_sane_default_options());
         foo.update();
         let q = foo.get_diff();
         assert!(q.len() > 0)

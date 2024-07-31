@@ -87,7 +87,7 @@ fn main() -> std::io::Result<()> {
     let fps = match args.screen_saver.as_str() {
         "matrix" => {
             let options = rain::digital_rain::DigitalRainOptionsBuilder::default()
-                .size((width, height))
+                .screen_size((width, height))
                 .drops_range((120, 240))
                 .speed_range((2, 16))
                 .build()
@@ -97,7 +97,7 @@ fn main() -> std::io::Result<()> {
         }
         "life" => {
             let options = life::ConwayLifeOptionsBuilder::default()
-                .screen_size((width as usize, height as usize))
+                .screen_size((width, height))
                 .build()
                 .unwrap();
             let mut conway_life = life::ConwayLife::new(options);
@@ -105,7 +105,7 @@ fn main() -> std::io::Result<()> {
         }
         "maze" => {
             let options = maze::MazeOptionsBuilder::default()
-                .screen_size((width as usize, height as usize))
+                .screen_size((width, height))
                 .build()
                 .unwrap();
             let mut wilson_maze = maze::Maze::new(options);
@@ -113,7 +113,7 @@ fn main() -> std::io::Result<()> {
         }
         "check" => {
             let options = check::CheckOptionsBuilder::default()
-                .screen_size((width as usize, height as usize))
+                .screen_size((width, height))
                 .build()
                 .unwrap();
             let mut check = check::Check::new(options);
