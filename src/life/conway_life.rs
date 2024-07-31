@@ -27,7 +27,7 @@ static DEAD_CELLS_CHARS: Lazy<Vec<char>> = Lazy::new(|| {
 #[derive(Builder, Default, Debug)]
 #[builder(public, setter(into))]
 pub struct ConwayLifeOptions {
-    screen_size: (usize, usize),
+    screen_size: (u16, u16),
     #[builder(default = "3000")]
     initial_cells: u32,
 }
@@ -85,8 +85,10 @@ impl LifeCell {
 
 impl TerminalEffect for ConwayLife {
     fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
-        let mut curr_buffer =
-            Buffer::new(self.options.screen_size.0, self.options.screen_size.1);
+        let mut curr_buffer = Buffer::new(
+            self.options.screen_size.0 as usize,
+            self.options.screen_size.1 as usize,
+        );
 
         // fill current buffer
         self.fill_buffer(&mut curr_buffer);
@@ -140,18 +142,29 @@ impl TerminalEffect for ConwayLife {
         }
         self.cells = next_cells;
     }
+
+    fn update_size(&mut self, width: u16, height: u16) {
+        self.options.screen_size = (width, height);
+    }
+
+    fn reset(&mut self) {
+        todo!();
+    }
 }
 
 impl ConwayLife {
     pub fn new(options: ConwayLifeOptions) -> Self {
         let mut rng = rand::thread_rng();
-        let buffer = Buffer::new(options.screen_size.0, options.screen_size.1);
+        let buffer = Buffer::new(
+            options.screen_size.0 as usize,
+            options.screen_size.1 as usize,
+        );
 
         let mut cells = HashMap::new();
         for _ in 0..options.initial_cells {
             let lc = LifeCell::new('*');
-            let x = rng.gen_range(0..options.screen_size.0);
-            let y = rng.gen_range(0..options.screen_size.1);
+            let x = rng.gen_range(0..options.screen_size.0) as usize;
+            let y = rng.gen_range(0..options.screen_size.1) as usize;
 
             cells.insert((x, y), lc);
         }

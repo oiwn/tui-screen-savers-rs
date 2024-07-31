@@ -10,8 +10,14 @@ use std::{
 };
 
 pub trait TerminalEffect {
+    /// get difference between frames, this is used to minimize screen updates
     fn get_diff(&mut self) -> Vec<(usize, usize, Cell)>;
+    /// Update to next frame
     fn update(&mut self);
+    // Update screen size option, each saver should implement it by itself
+    fn update_size(&mut self, width: u16, height: u16);
+    /// Reset effect, i think it's useful in case of size/options update
+    fn reset(&mut self);
 }
 
 pub fn process_input() -> Result<bool> {
@@ -61,6 +67,17 @@ where
     while is_running {
         let started_at: std::time::SystemTime = std::time::SystemTime::now();
         is_running = process_input()?;
+
+        while event::poll(Duration::from_millis(10))? {
+            match event::read()? {
+                event::Event::Resize(new_width, new_height) => {
+                    // Update size and reset effect
+                    effect.update_size(new_width, new_height);
+                    effect.reset();
+                }
+                _ => {}
+            }
+        }
 
         // draw diff
         let queue = effect.get_diff();

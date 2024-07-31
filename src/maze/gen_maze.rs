@@ -15,7 +15,7 @@ static CHARACTERS_MAP: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
     m
 });
 
-/// Characters used to form kinda-canonical matrix effect
+/// Characters to draw more interesing view
 static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
     let mut v = Vec::new();
     for (_, chars) in CHARACTERS_MAP.iter() {
@@ -24,10 +24,10 @@ static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
     v
 });
 
-#[derive(Builder, Default, Debug)]
+#[derive(Builder, Default, Debug, Clone)]
 #[builder(public, setter(into))]
 pub struct MazeOptions {
-    screen_size: (usize, usize),
+    screen_size: (u16, u16),
 }
 
 pub struct Maze {
@@ -47,7 +47,6 @@ impl TerminalEffect for Maze {
             return Vec::new();
         }
         let mut curr_buffer = self.initial_walls.clone();
-
         let mut modified_cells = HashSet::new();
         // Randomly change 5 distinct cells
         while modified_cells.len() < 3 {
@@ -123,12 +122,37 @@ impl TerminalEffect for Maze {
             self.maze_complete = true;
         }
     }
+
+    fn update_size(&mut self, width: u16, height: u16) {
+        self.options.screen_size = (width, height);
+    }
+
+    fn reset(&mut self) {
+        let mut new_effect = Self::new(self.options.clone());
+        fill_initial_walls(&mut new_effect.initial_walls);
+        new_effect.maze_complete = false;
+        new_effect.paths.clear();
+        new_effect.stack.clear();
+        new_effect.rng = rand::thread_rng();
+
+        let start_x = new_effect
+            .rng
+            .gen_range(0..self.options.screen_size.0 as isize);
+        let start_y = new_effect
+            .rng
+            .gen_range(0..self.options.screen_size.1 as isize);
+        new_effect.stack.push_back((start_x, start_y));
+        *self = new_effect;
+    }
 }
 
 impl Maze {
     pub fn new(options: MazeOptions) -> Self {
         let mut rng = rand::thread_rng();
-        let buffer = Buffer::new(options.screen_size.0, options.screen_size.1);
+        let buffer = Buffer::new(
+            options.screen_size.0 as usize,
+            options.screen_size.1 as usize,
+        );
 
         let paths = HashSet::new();
         let start_x = rng.gen_range(0..options.screen_size.0 as isize);
@@ -150,23 +174,11 @@ impl Maze {
         }
     }
 
-    pub fn reset(&mut self) {
-        fill_initial_walls(&mut self.initial_walls);
-        self.maze_complete = false;
-        self.paths.clear();
-        self.stack.clear();
-        self.rng = rand::thread_rng();
-
-        let start_x = self.rng.gen_range(0..self.options.screen_size.0 as isize);
-        let start_y = self.rng.gen_range(0..self.options.screen_size.1 as isize);
-        self.stack.push_back((start_x, start_y));
-    }
-
     fn is_valid_cell(&self, x: isize, y: isize) -> bool {
         x >= 0
             && y >= 0
-            && (x as usize) < self.options.screen_size.0
-            && (y as usize) < self.options.screen_size.1
+            && (x as usize) < (self.options.screen_size.0 as usize)
+            && (y as usize) < (self.options.screen_size.1 as usize)
     }
 
     fn carve_path(&mut self, x: isize, y: isize) {

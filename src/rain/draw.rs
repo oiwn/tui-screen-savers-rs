@@ -54,7 +54,7 @@ mod tests {
 
     fn get_default_rain() -> DigitalRain {
         let rain_options = DigitalRainOptionsBuilder::default()
-            .size((30, 30))
+            .screen_size((30, 30))
             .drops_range((10, 20))
             .speed_range((2, 15))
             .build()

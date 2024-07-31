@@ -3,12 +3,13 @@ use crate::common::TerminalEffect;
 use crossterm::style;
 use derive_builder::Builder;
 
-#[derive(Builder, Default, Debug)]
+#[derive(Builder, Default, Debug, Clone)]
 #[builder(public, setter(into))]
 pub struct CheckOptions {
-    screen_size: (usize, usize),
+    screen_size: (u16, u16),
 }
 
+#[allow(dead_code)]
 pub struct Check {
     options: CheckOptions,
     buffer: Buffer,
@@ -16,8 +17,10 @@ pub struct Check {
 
 impl TerminalEffect for Check {
     fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
-        let mut curr_buffer =
-            Buffer::new(self.options.screen_size.0, self.options.screen_size.1);
+        let mut curr_buffer = Buffer::new(
+            self.options.screen_size.0 as usize,
+            self.options.screen_size.1 as usize,
+        );
 
         curr_buffer.fill_with(&Cell {
             symbol: '#',
@@ -31,11 +34,22 @@ impl TerminalEffect for Check {
     }
 
     fn update(&mut self) {}
+
+    fn update_size(&mut self, width: u16, height: u16) {
+        self.options.screen_size = (width, height)
+    }
+
+    fn reset(&mut self) {
+        *self = Self::new(self.options.clone());
+    }
 }
 
 impl Check {
     pub fn new(options: CheckOptions) -> Self {
-        let mut buffer = Buffer::new(options.screen_size.0, options.screen_size.1);
+        let mut buffer = Buffer::new(
+            options.screen_size.0 as usize,
+            options.screen_size.1 as usize,
+        );
 
         buffer.fill_with(&Cell {
             symbol: '#',

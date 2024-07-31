@@ -41,7 +41,7 @@ pub enum RainDropStyle {
 }
 
 pub struct RainDrop {
-    pub drop_id: usize,
+    pub _drop_id: usize,
     pub body: Vec<char>,
     pub style: RainDropStyle,
     pub fx: u16,
@@ -93,7 +93,7 @@ impl RainDrop {
     /// Create new worm from values
     #[inline(always)]
     pub fn from_values(
-        drop_id: usize,
+        _drop_id: usize,
         body: Vec<char>,
         style: RainDropStyle,
         fx: u16,
@@ -102,7 +102,7 @@ impl RainDrop {
         speed: u16,
     ) -> Self {
         Self {
-            drop_id,
+            _drop_id,
             body,
             style,
             fx,
@@ -249,7 +249,7 @@ mod tests {
 
     fn get_sane_options() -> DigitalRainOptions {
         DigitalRainOptionsBuilder::default()
-            .size((100, 100))
+            .screen_size((100, 100))
             .drops_range((20, 30))
             .speed_range((10, 20))
             .build()
@@ -265,7 +265,7 @@ mod tests {
 
         new_drop.reset(&get_sane_options(), &mut rng);
         assert_eq!(new_drop.fy, 0.0);
-        assert_eq!(new_drop.drop_id, 1);
+        assert_eq!(new_drop._drop_id, 1);
         assert_eq!(new_drop.body.len(), 1);
     }
 
