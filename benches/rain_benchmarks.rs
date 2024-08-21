@@ -34,7 +34,7 @@ fn run_loop_benchmark(_c: &mut Criterion) {
 
 fn vertical_worm_benchmark(c: &mut Criterion) {
     let options = get_sane_options();
-    c.bench_function("benchmark_worm_new_1000", |b| {
+    c.bench_function("benchmark_raindrop_new_1000", |b| {
         b.iter(|| {
             let mut rng = rand::thread_rng();
             for index in 1..=1000 {
@@ -43,7 +43,7 @@ fn vertical_worm_benchmark(c: &mut Criterion) {
         })
     });
 
-    c.bench_function("benchmark_worm_update_1000", |b| {
+    c.bench_function("benchmark_raindrop_update_1000", |b| {
         let mut rng = rand::thread_rng();
         let options = get_sane_options();
         let mut drops: Vec<rain_drop::RainDrop> = vec![];
