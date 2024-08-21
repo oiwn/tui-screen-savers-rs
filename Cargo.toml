@@ -1,6 +1,6 @@
 [package]
 name = "tarts"  # shortcut from Terminal Arts
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 
 authors = ["oiwn <alex@imscraping.ninja>"]
@@ -13,9 +13,9 @@ homepage = "https://github.com/oiwn/tui-screen-savers-rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-crossterm = "0.27"
-derive_builder = "0.12"
-once_cell = "1.18"
+crossterm = "0.28"
+derive_builder = "0.20"
+once_cell = "1.19"
 pico-args = "0.5"
 rand = "0.8"
 tracing = "0.1"
@@ -32,6 +32,6 @@ harness = false
 [profile.release]
 panic = "abort"
 strip = true  # Automatically strip symbols from the binary.
-opt-level = "z"  # Optimize for size.
+opt-level = "s"  # Optimize for size.
 lto = true  # enable link time optimization
 codegen-units = 1

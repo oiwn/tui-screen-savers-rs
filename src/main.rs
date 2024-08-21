@@ -108,8 +108,8 @@ fn main() -> std::io::Result<()> {
                 .screen_size((width, height))
                 .build()
                 .unwrap();
-            let mut wilson_maze = maze::Maze::new(options);
-            common::run_loop(&mut stdout, &mut wilson_maze, None)?
+            let mut maze = maze::Maze::new(options);
+            common::run_loop(&mut stdout, &mut maze, None)?
         }
         "check" => {
             let options = check::CheckOptionsBuilder::default()

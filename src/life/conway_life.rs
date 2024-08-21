@@ -61,20 +61,21 @@ impl LifeCell {
     ) {
         let green_color = 255_u8.wrapping_sub(current_gen);
         match current_gen {
-            0..=250 => {
+            0..=230 => {
                 self.color = style::Color::Rgb {
                     r: 0,
                     g: green_color,
                     b: 0,
                 }; // Green
-                self.character = '*';
+                let random_index = rng.gen_range(0..DEAD_CELLS_CHARS.len());
+                self.character = *DEAD_CELLS_CHARS.get(random_index).unwrap();
             }
             _ => {
                 self.color = style::Color::Rgb {
-                    r: 128,
+                    r: 0,
                     g: green_color,
-                    b: 128,
-                }; // Purple
+                    b: 0,
+                };
                 let random_index = rng.gen_range(0..DEAD_CELLS_CHARS.len());
                 self.character = *DEAD_CELLS_CHARS.get(random_index).unwrap();
             }
