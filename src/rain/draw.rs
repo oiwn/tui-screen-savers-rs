@@ -52,8 +52,8 @@ pub fn pick_color(
 mod tests {
     use crate::rain::digital_rain::{DigitalRain, DigitalRainOptionsBuilder};
 
-    use crossterm::terminal;
-    use std::io::{self, Write};
+    // use crossterm::terminal;
+    // use std::io::{self, Write};
 
     fn get_default_rain() -> DigitalRain {
         let rain_options = DigitalRainOptionsBuilder::default()

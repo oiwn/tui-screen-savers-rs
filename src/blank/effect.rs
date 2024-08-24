@@ -5,17 +5,17 @@ use derive_builder::Builder;
 
 #[derive(Builder, Default, Debug, Clone)]
 #[builder(public, setter(into))]
-pub struct CheckOptions {
+pub struct BlankOptions {
     screen_size: (u16, u16),
 }
 
 #[allow(dead_code)]
-pub struct Check {
-    options: CheckOptions,
+pub struct Blank {
+    options: BlankOptions,
     buffer: Buffer,
 }
 
-impl TerminalEffect for Check {
+impl TerminalEffect for Blank {
     fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
         let mut curr_buffer = Buffer::new(
             self.options.screen_size.0 as usize,
@@ -44,8 +44,8 @@ impl TerminalEffect for Check {
     }
 }
 
-impl Check {
-    pub fn new(options: CheckOptions) -> Self {
+impl Blank {
+    pub fn new(options: BlankOptions) -> Self {
         let mut buffer = Buffer::new(
             options.screen_size.0 as usize,
             options.screen_size.1 as usize,
