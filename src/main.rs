@@ -48,6 +48,7 @@
 use crossterm::{self, cursor, execute, terminal};
 use std::{io, process};
 
+mod blank;
 mod buffer;
 mod check;
 mod common;
@@ -60,6 +61,9 @@ const HELP: &str = "Terminal screensavers, run with arg: matrix, life, maze";
 #[derive(Debug)]
 struct AppArgs {
     screen_saver: String,
+    check: bool,
+    effect: Option<String>,
+    frames: Option<usize>,
 }
 
 fn main() -> std::io::Result<()> {
@@ -72,6 +76,13 @@ fn main() -> std::io::Result<()> {
             process::exit(1);
         }
     };
+
+    if args.check {
+        let effect = args.effect.unwrap_or_else(|| "matrix".to_string());
+        let frames = args.frames.unwrap_or(1);
+        return check::run_check(&effect, frames);
+    }
+
     let mut stdout = io::stdout();
 
     terminal::enable_raw_mode()?;
@@ -111,14 +122,15 @@ fn main() -> std::io::Result<()> {
             let mut maze = maze::Maze::new(options);
             common::run_loop(&mut stdout, &mut maze, None)?
         }
-        "check" => {
-            let options = check::CheckOptionsBuilder::default()
+        "blank" => {
+            let options = blank::BlankOptionsBuilder::default()
                 .screen_size((width, height))
                 .build()
                 .unwrap();
-            let mut check = check::Check::new(options);
+            let mut check = blank::Blank::new(options);
             common::run_loop(&mut stdout, &mut check, None)?
         }
+
         _ => {
             println!("Pick screensaver: [matrix, life, maze]");
             0.0
@@ -145,9 +157,15 @@ fn parse_args() -> Result<AppArgs, pico_args::Error> {
         process::exit(0);
     }
 
+    let check = pargs.contains("--check");
+    let effect = pargs.opt_value_from_str("--effect")?;
+    let frames = pargs.opt_value_from_str("--frames")?;
+
     let args = AppArgs {
-        // default screensaver is "matrix"
         screen_saver: pargs.free_from_str().map_or("matrix".into(), |arg| arg),
+        check,
+        effect,
+        frames,
     };
 
     let remaining = pargs.finish();
