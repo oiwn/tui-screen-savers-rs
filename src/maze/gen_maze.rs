@@ -2,12 +2,12 @@ use crate::buffer::{Buffer, Cell};
 use crate::common::TerminalEffect;
 use crossterm::style;
 use derive_builder::Builder;
-use once_cell::sync::Lazy;
 use rand::{seq::SliceRandom, Rng};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::LazyLock;
 
 /// Characters in form of hashmap with label as key
-static CHARACTERS_MAP: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
+static CHARACTERS_MAP: LazyLock<HashMap<&str, &str>> = LazyLock::new(|| {
     let mut m = HashMap::new();
     m.insert("punctuation", r#":."=*+-<>"#);
     m.insert("katakana", "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ");
@@ -16,7 +16,7 @@ static CHARACTERS_MAP: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
 });
 
 /// Characters to draw more interesing view
-static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
+static CHARACTERS: LazyLock<Vec<char>> = LazyLock::new(|| {
     let mut v = Vec::new();
     for (_, chars) in CHARACTERS_MAP.iter() {
         v.append(&mut chars.chars().collect());

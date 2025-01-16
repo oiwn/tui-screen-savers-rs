@@ -14,11 +14,11 @@ use crate::buffer::{Buffer, Cell};
 use crate::common::TerminalEffect;
 use crossterm::style;
 use derive_builder::Builder;
-use once_cell::sync::Lazy;
 use rand::Rng;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
-static DEAD_CELLS_CHARS: Lazy<Vec<char>> = Lazy::new(|| {
+static DEAD_CELLS_CHARS: LazyLock<Vec<char>> = LazyLock::new(|| {
     let characters = "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ";
     let char_vec: Vec<char> = characters.chars().collect();
     char_vec

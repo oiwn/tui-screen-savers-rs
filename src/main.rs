@@ -46,6 +46,7 @@
 //!
 #![cfg(not(test))]
 use crossterm::{self, cursor, execute, terminal};
+use log::info;
 use std::{io, process};
 
 mod blank;
@@ -67,7 +68,7 @@ struct AppArgs {
 }
 
 fn main() -> std::io::Result<()> {
-    tracing_subscriber::fmt::init();
+    env_logger::init();
 
     let args = match parse_args() {
         Ok(v) => v,
@@ -97,6 +98,7 @@ fn main() -> std::io::Result<()> {
 
     let fps = match args.screen_saver.as_str() {
         "matrix" => {
+            info!("Initializing DigitalRain effect...");
             let options = rain::digital_rain::DigitalRainOptionsBuilder::default()
                 .screen_size((width, height))
                 .drops_range((120, 240))
@@ -104,30 +106,37 @@ fn main() -> std::io::Result<()> {
                 .build()
                 .unwrap();
             let mut digital_rain = rain::digital_rain::DigitalRain::new(options);
+            info!("Running DigitalRain effect main loop...");
             common::run_loop(&mut stdout, &mut digital_rain, None)?
         }
         "life" => {
+            info!("Initializing Life effect...");
             let options = life::ConwayLifeOptionsBuilder::default()
                 .screen_size((width, height))
                 .build()
                 .unwrap();
             let mut conway_life = life::ConwayLife::new(options);
+            info!("Running Life effect main loop...");
             common::run_loop(&mut stdout, &mut conway_life, None)?
         }
         "maze" => {
+            info!("Initializing Maze effect...");
             let options = maze::MazeOptionsBuilder::default()
                 .screen_size((width, height))
                 .build()
                 .unwrap();
             let mut maze = maze::Maze::new(options);
+            info!("Running Maze effect main loop...");
             common::run_loop(&mut stdout, &mut maze, None)?
         }
         "blank" => {
+            info!("Initializing Blank effect...");
             let options = blank::BlankOptionsBuilder::default()
                 .screen_size((width, height))
                 .build()
                 .unwrap();
             let mut check = blank::Blank::new(options);
+            info!("Running Blank effect main loop...");
             common::run_loop(&mut stdout, &mut check, None)?
         }
 

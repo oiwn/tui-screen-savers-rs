@@ -239,7 +239,7 @@ mod tests {
     fn no_diff() {
         let mut foo = DigitalRain::new(get_sane_default_options());
         let q = foo.get_diff();
-        assert!(q.len() == 0);
+        assert!(q.is_empty());
     }
 
     #[test]
@@ -247,6 +247,6 @@ mod tests {
         let mut foo = DigitalRain::new(get_sane_default_options());
         foo.update();
         let q = foo.get_diff();
-        assert!(q.len() > 0)
+        assert!(!q.is_empty());
     }
 }
