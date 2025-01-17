@@ -46,6 +46,7 @@
 //!
 #![cfg(not(test))]
 use crossterm::{self, cursor, execute, terminal};
+use tarts::{config, rain};
 // use log::info;
 use std::{io, process};
 

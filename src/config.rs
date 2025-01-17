@@ -1,13 +1,9 @@
 use crate::common::DefaultOptions;
 use crate::error::{ConfigError, Result, TartsError};
 use crate::life::ConwayLife;
-use crate::life::ConwayLifeOptions;
 use crate::maze::Maze;
-use crate::maze::MazeOptions;
 use crate::rain::digital_rain::DigitalRain;
-use crate::rain::digital_rain::{DigitalRainOptions, DigitalRainOptionsBuilder};
 use directories::ProjectDirs;
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
