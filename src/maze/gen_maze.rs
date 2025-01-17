@@ -1,10 +1,12 @@
 use crate::buffer::{Buffer, Cell};
-use crate::common::TerminalEffect;
+use crate::common::{DefaultOptions, TerminalEffect};
 use crossterm::style;
 use derive_builder::Builder;
 use rand::{seq::SliceRandom, Rng};
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::sync::LazyLock;
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    sync::LazyLock,
+};
 
 /// Characters in form of hashmap with label as key
 static CHARACTERS_MAP: LazyLock<HashMap<&str, &str>> = LazyLock::new(|| {
@@ -27,7 +29,7 @@ static CHARACTERS: LazyLock<Vec<char>> = LazyLock::new(|| {
 #[derive(Builder, Default, Debug, Clone)]
 #[builder(public, setter(into))]
 pub struct MazeOptions {
-    screen_size: (u16, u16),
+    pub screen_size: (u16, u16),
 }
 
 pub struct Maze {
@@ -205,6 +207,17 @@ fn fill_initial_walls(buffer: &mut Buffer) {
     }
 }
 
+impl DefaultOptions for Maze {
+    type Options = MazeOptions;
+
+    fn default_options(width: u16, height: u16) -> Self::Options {
+        MazeOptionsBuilder::default()
+            .screen_size((width, height))
+            .build()
+            .unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -244,9 +257,6 @@ mod tests {
         let diff = maze.get_diff();
         assert_eq!(diff.len(), 25);
 
-        // /* NOTE: why no path_cells set in buffer after update?
-        // maze.update();
-        // let _ = maze.get_diff();
         // buffer correctly processed
         let mut path_cells = 0;
         for cell in maze.buffer.iter() {
@@ -255,6 +265,5 @@ mod tests {
             }
         }
         assert_eq!(path_cells, 23);
-        // */
     }
 }

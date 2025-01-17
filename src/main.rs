@@ -46,16 +46,20 @@
 //!
 #![cfg(not(test))]
 use crossterm::{self, cursor, execute, terminal};
-use log::info;
+// use log::info;
 use std::{io, process};
 
 mod blank;
 mod buffer;
 mod check;
 mod common;
+mod config;
+mod error;
 mod life;
 mod maze;
 mod rain;
+
+use crate::common::DefaultOptions;
 
 const HELP: &str = "Terminal screensavers, run with arg: matrix, life, maze";
 
@@ -67,7 +71,7 @@ struct AppArgs {
     frames: Option<usize>,
 }
 
-fn main() -> std::io::Result<()> {
+fn main() -> Result<(), error::TartsError> {
     env_logger::init();
 
     let args = match parse_args() {
@@ -81,7 +85,7 @@ fn main() -> std::io::Result<()> {
     if args.check {
         let effect = args.effect.unwrap_or_else(|| "matrix".to_string());
         let frames = args.frames.unwrap_or(1);
-        return check::run_check(&effect, frames);
+        return check::run_test_for_effect(&effect, frames);
     }
 
     let mut stdout = io::stdout();
@@ -98,45 +102,35 @@ fn main() -> std::io::Result<()> {
 
     let fps = match args.screen_saver.as_str() {
         "matrix" => {
-            info!("Initializing DigitalRain effect...");
-            let options = rain::digital_rain::DigitalRainOptionsBuilder::default()
-                .screen_size((width, height))
-                .drops_range((120, 240))
-                .speed_range((2, 16))
-                .build()
-                .unwrap();
+            // info!("Initializing DigitalRain effect...");
+            let options =
+                rain::digital_rain::DigitalRain::default_options(width, height);
             let mut digital_rain = rain::digital_rain::DigitalRain::new(options);
-            info!("Running DigitalRain effect main loop...");
+            // info!("Running DigitalRain effect main loop...");
             common::run_loop(&mut stdout, &mut digital_rain, None)?
         }
         "life" => {
-            info!("Initializing Life effect...");
-            let options = life::ConwayLifeOptionsBuilder::default()
-                .screen_size((width, height))
-                .build()
-                .unwrap();
+            // info!("Initializing Life effect...");
+            let options = life::ConwayLife::default_options(width, height);
             let mut conway_life = life::ConwayLife::new(options);
-            info!("Running Life effect main loop...");
+            // info!("Running Life effect main loop...");
             common::run_loop(&mut stdout, &mut conway_life, None)?
         }
         "maze" => {
-            info!("Initializing Maze effect...");
-            let options = maze::MazeOptionsBuilder::default()
-                .screen_size((width, height))
-                .build()
-                .unwrap();
+            // info!("Initializing Maze effect...");
+            let options = maze::Maze::default_options(width, height);
             let mut maze = maze::Maze::new(options);
-            info!("Running Maze effect main loop...");
+            // info!("Running Maze effect main loop...");
             common::run_loop(&mut stdout, &mut maze, None)?
         }
         "blank" => {
-            info!("Initializing Blank effect...");
+            // info!("Initializing Blank effect...");
             let options = blank::BlankOptionsBuilder::default()
                 .screen_size((width, height))
                 .build()
                 .unwrap();
             let mut check = blank::Blank::new(options);
-            info!("Running Blank effect main loop...");
+            // info!("Running Blank effect main loop...");
             common::run_loop(&mut stdout, &mut check, None)?
         }
 

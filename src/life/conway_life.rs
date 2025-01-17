@@ -11,7 +11,7 @@
 //!     If a dead cell is surrounded by exactly three living cells,
 //!     it becomes a living cell.
 use crate::buffer::{Buffer, Cell};
-use crate::common::TerminalEffect;
+use crate::common::{DefaultOptions, TerminalEffect};
 use crossterm::style;
 use derive_builder::Builder;
 use rand::Rng;
@@ -28,8 +28,8 @@ static DEAD_CELLS_CHARS: LazyLock<Vec<char>> = LazyLock::new(|| {
 #[builder(public, setter(into))]
 pub struct ConwayLifeOptions {
     screen_size: (u16, u16),
-    #[builder(default = "3000")]
-    initial_cells: u32,
+    // #[builder(default = "3000")]
+    pub initial_cells: u32,
 }
 
 #[derive(Clone)]
@@ -275,6 +275,20 @@ pub fn get_neighbors_by_coords(
         }
     }
     neighbors
+}
+
+impl DefaultOptions for ConwayLife {
+    type Options = ConwayLifeOptions;
+
+    fn default_options(width: u16, height: u16) -> Self::Options {
+        let initial_cells = ((width as u32 * height as u32) as f32 * 0.3) as u32; // 30% of screen space
+
+        ConwayLifeOptionsBuilder::default()
+            .screen_size((width, height))
+            .initial_cells(initial_cells)
+            .build()
+            .unwrap()
+    }
 }
 
 #[cfg(test)]
