@@ -4,5 +4,5 @@ tags:
 rain-bench-base:
 	cargo test --release --bench matrix_benchmarks -- --save-baseline started_from_here
 
-
-
+lines:
+	tokei

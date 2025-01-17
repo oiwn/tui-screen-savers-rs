@@ -7,4 +7,5 @@ Cargo.lock
 # misc
 tmp/
 tags
+.code
 .DS_Store

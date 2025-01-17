@@ -1,4 +1,5 @@
 use crate::common::TerminalEffect;
+use crate::error::Result;
 use crossterm::{
     cursor,
     event::{self, Event},
@@ -9,7 +10,28 @@ use crossterm::{
 use std::io::{self, Write};
 use std::time::Duration;
 
-pub fn check<T: TerminalEffect>(effect: &mut T, frames: usize) -> io::Result<()> {
+/// Runs a terminal screensaver effect for a limited number of frames to validate its functionality.
+///
+/// This function initializes the terminal in alternate screen mode, runs the specified effect
+/// for the given number of frames, and waits for user input before restoring the terminal state.
+/// Useful for testing and debugging screensaver effects.
+///
+/// # Arguments
+/// * `effect` - The terminal effect implementation to run
+/// * `frames` - Number of frames to render before pausing
+///
+/// # Returns
+/// * `Result<(), TartsError>` - Success or error with terminal operations
+///
+/// # Example
+/// ```ignore
+/// let options = DigitalRainOptionsBuilder::default()
+///     .screen_size((80, 40))
+///     .build()?;
+/// let mut effect = DigitalRain::new(options);
+/// test_effect(&mut effect, 100)?;
+/// ```
+pub fn test_effect<T: TerminalEffect>(effect: &mut T, frames: usize) -> Result<()> {
     let mut stdout = io::stdout();
     execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide)?;
     terminal::enable_raw_mode()?;
@@ -60,7 +82,8 @@ pub fn check<T: TerminalEffect>(effect: &mut T, frames: usize) -> io::Result<()>
     Ok(())
 }
 
-pub fn run_check(effect_name: &str, frames: usize) -> io::Result<()> {
+/// Run appropirate effect till frame number
+pub fn run_test_for_effect(effect_name: &str, frames: usize) -> Result<()> {
     match effect_name {
         "matrix" => {
             let options =
@@ -72,7 +95,7 @@ pub fn run_check(effect_name: &str, frames: usize) -> io::Result<()> {
                     .unwrap();
             let mut digital_rain =
                 crate::rain::digital_rain::DigitalRain::new(options);
-            check(&mut digital_rain, frames)
+            test_effect(&mut digital_rain, frames)
         }
         "life" => {
             let options = crate::life::ConwayLifeOptionsBuilder::default()
@@ -80,7 +103,7 @@ pub fn run_check(effect_name: &str, frames: usize) -> io::Result<()> {
                 .build()
                 .unwrap();
             let mut conway_life = crate::life::ConwayLife::new(options);
-            check(&mut conway_life, frames)
+            test_effect(&mut conway_life, frames)
         }
         "maze" => {
             let options = crate::maze::MazeOptionsBuilder::default()
@@ -88,7 +111,7 @@ pub fn run_check(effect_name: &str, frames: usize) -> io::Result<()> {
                 .build()
                 .unwrap();
             let mut maze = crate::maze::Maze::new(options);
-            check(&mut maze, frames)
+            test_effect(&mut maze, frames)
         }
         _ => {
             println!(

@@ -1,5 +1,4 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use rand;
 use std::time::Duration;
 use tarts::{
     common::{self, TerminalEffect},

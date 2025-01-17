@@ -2,7 +2,7 @@ use super::draw::{pick_color, pick_style};
 use super::gradient;
 use super::rain_drop::RainDrop;
 use crate::buffer::{Buffer, Cell};
-use crate::common::TerminalEffect;
+use crate::common::{DefaultOptions, TerminalEffect};
 
 use derive_builder::Builder;
 use rand::{self, Rng};
@@ -216,6 +216,31 @@ impl DigitalRainOptions {
     }
 }
 
+impl DefaultOptions for DigitalRain {
+    type Options = DigitalRainOptions;
+
+    fn default_options(width: u16, height: u16) -> Self::Options {
+        let drops_range = {
+            let min_drops = (width * height) / 160; // Approximately 0.6% of screen space
+            let max_drops = (width * height) / 80; // Approximately 1.2% of screen space
+            (min_drops.max(10), max_drops.max(20)) // Ensure minimum values
+        };
+
+        let speed_range = {
+            let min_speed = (height / 20).max(2); // Faster for larger screens
+            let max_speed = (height / 10).max(16); // But not too fast
+            (min_speed, max_speed)
+        };
+
+        DigitalRainOptionsBuilder::default()
+            .screen_size((width, height))
+            .drops_range(drops_range)
+            .speed_range(speed_range)
+            .build()
+            .unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -239,7 +264,7 @@ mod tests {
     fn no_diff() {
         let mut foo = DigitalRain::new(get_sane_default_options());
         let q = foo.get_diff();
-        assert!(q.len() == 0);
+        assert!(q.is_empty());
     }
 
     #[test]
@@ -247,6 +272,6 @@ mod tests {
         let mut foo = DigitalRain::new(get_sane_default_options());
         foo.update();
         let q = foo.get_diff();
-        assert!(q.len() > 0)
+        assert!(!q.is_empty());
     }
 }

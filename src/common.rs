@@ -9,6 +9,13 @@ use std::{
     time::Duration,
 };
 
+pub trait DefaultOptions {
+    type Options;
+
+    /// Calculate default options based on terminal dimensions
+    fn default_options(width: u16, height: u16) -> Self::Options;
+}
+
 pub trait TerminalEffect {
     /// get difference between frames, this is used to minimize screen updates
     fn get_diff(&mut self) -> Vec<(usize, usize, Cell)>;

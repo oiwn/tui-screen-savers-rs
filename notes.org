@@ -1,6 +1,9 @@
 #+title: Notes
 
 * Digital rain
+** DONE Add config
+** TODO Add valudation for config
+** better CI/CD
 ** DONE Slowly increasing amount of "worms"
 ** DONE Add speed optimization for release version
 ** DONE try color gradient

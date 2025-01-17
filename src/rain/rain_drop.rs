@@ -1,18 +1,18 @@
 // use super::rain_options::DigitalRainOptions;
 use crate::rain::digital_rain::DigitalRainOptions;
-use once_cell::sync::Lazy;
 use rand::{
     self,
     distributions::{Distribution, Standard},
     seq::SliceRandom,
     Rng,
 };
+use std::sync::LazyLock;
 use std::{collections::HashMap, time::Duration};
 
 /// Characters in form of hashmap with label as key
 /// Note that some characters are wide unicode and they will broke
 /// screen in strange way.
-static CHARACTERS_MAP: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
+static CHARACTERS_MAP: LazyLock<HashMap<&str, &str>> = LazyLock::new(|| {
     let mut m = HashMap::new();
     m.insert("digits", "012345789");
     // m.insert("punctuation", r#":・."=*+-<>"#); // wide character there
@@ -24,7 +24,7 @@ static CHARACTERS_MAP: Lazy<HashMap<&str, &str>> = Lazy::new(|| {
 });
 
 /// Characters used to form kinda-canonical matrix effect
-static CHARACTERS: Lazy<Vec<char>> = Lazy::new(|| {
+static CHARACTERS: LazyLock<Vec<char>> = LazyLock::new(|| {
     let mut v = Vec::new();
     for (_, chars) in CHARACTERS_MAP.iter() {
         v.append(&mut chars.chars().collect());
@@ -260,7 +260,7 @@ mod tests {
     fn create_new_and_reset() {
         let mut rng = rand::thread_rng();
         let mut new_drop = RainDrop::new(&get_sane_options(), 1, &mut rng);
-        assert!(new_drop.body.len() > 0);
+        assert!(!new_drop.body.is_empty());
         assert!(new_drop.speed > 0);
 
         new_drop.reset(&get_sane_options(), &mut rng);
@@ -325,7 +325,7 @@ mod tests {
         );
         new_drop.grow(10, &mut rng);
         assert_eq!(new_drop.body.len(), 1);
-        assert_eq!(new_drop.body.get(0), Some(&'a'));
+        assert_eq!(new_drop.body.first(), Some(&'a'));
 
         let mut new_drop = RainDrop::from_values(
             1,
@@ -408,7 +408,7 @@ mod tests {
         );
         new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
         assert_eq!(new_drop.body.len(), 5);
-        assert_eq!(new_drop.fy > 30.0, true);
+        assert!(new_drop.fy > 30.0);
 
         // when head_y > screen height and body len is 2
         let mut new_drop = RainDrop::from_values(

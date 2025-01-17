@@ -1,4 +1,4 @@
-session_name: screen-savers-rs
+session_name: tui-screen-savers
 shell_command_before: "export RUST_LOG=info; clear"
 windows:
   - window_name: code
