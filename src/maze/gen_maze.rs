@@ -2,7 +2,7 @@ use crate::buffer::{Buffer, Cell};
 use crate::common::{DefaultOptions, TerminalEffect};
 use crossterm::style;
 use derive_builder::Builder;
-use rand::{seq::SliceRandom, Rng};
+use rand::{Rng, seq::SliceRandom};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     sync::LazyLock,
@@ -52,16 +52,16 @@ impl TerminalEffect for Maze {
         let mut modified_cells = HashSet::new();
         // Randomly change 5 distinct cells
         while modified_cells.len() < 3 {
-            let x = self.rng.gen_range(0..curr_buffer.width);
-            let y = self.rng.gen_range(0..curr_buffer.height);
+            let x = self.rng.random_range(0..curr_buffer.width);
+            let y = self.rng.random_range(0..curr_buffer.height);
 
             if modified_cells.insert((x, y)) {
                 let random_char =
-                    CHARACTERS[self.rng.gen_range(0..CHARACTERS.len())];
+                    CHARACTERS[self.rng.random_range(0..CHARACTERS.len())];
                 let random_color = style::Color::Rgb {
-                    r: self.rng.gen_range(0..200) as u8,
-                    g: self.rng.gen_range(0..256) as u8,
-                    b: self.rng.gen_range(0..200) as u8,
+                    r: self.rng.random_range(0..200) as u8,
+                    g: self.rng.random_range(0..256) as u8,
+                    b: self.rng.random_range(0..200) as u8,
                 };
                 self.initial_walls.set(
                     x,
@@ -135,32 +135,30 @@ impl TerminalEffect for Maze {
         new_effect.maze_complete = false;
         new_effect.paths.clear();
         new_effect.stack.clear();
-        new_effect.rng = rand::thread_rng();
+        new_effect.rng = rand::rng();
 
-        let start_x = new_effect
-            .rng
-            .gen_range(0..self.options.screen_size.0 as isize);
-        let start_y = new_effect
-            .rng
-            .gen_range(0..self.options.screen_size.1 as isize);
-        new_effect.stack.push_back((start_x, start_y));
+        let start_x = new_effect.rng.random_range(0..self.options.screen_size.0);
+        let start_y = new_effect.rng.random_range(0..self.options.screen_size.1);
+        new_effect
+            .stack
+            .push_back((start_x as isize, start_y as isize));
         *self = new_effect;
     }
 }
 
 impl Maze {
     pub fn new(options: MazeOptions) -> Self {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let buffer = Buffer::new(
             options.screen_size.0 as usize,
             options.screen_size.1 as usize,
         );
 
         let paths = HashSet::new();
-        let start_x = rng.gen_range(0..options.screen_size.0 as isize);
-        let start_y = rng.gen_range(0..options.screen_size.1 as isize);
+        let start_x = rng.random_range(0..options.screen_size.0);
+        let start_y = rng.random_range(0..options.screen_size.1);
         let mut stack = VecDeque::new();
-        stack.push_back((start_x, start_y));
+        stack.push_back((start_x as isize, start_y as isize));
 
         let mut initial_walls = buffer.clone();
         fill_initial_walls(&mut initial_walls);
@@ -189,14 +187,14 @@ impl Maze {
 }
 
 fn fill_initial_walls(buffer: &mut Buffer) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     for y in 0..buffer.height {
         for x in 0..buffer.width {
-            let random_char = CHARACTERS[rng.gen_range(0..CHARACTERS.len())];
+            let random_char = CHARACTERS[rng.random_range(0..CHARACTERS.len())];
             let random_color = style::Color::Rgb {
-                r: rng.gen_range(0..120) as u8,
-                g: rng.gen_range(0..256) as u8,
-                b: rng.gen_range(0..120) as u8,
+                r: rng.random_range(0..120) as u8,
+                g: rng.random_range(0..256) as u8,
+                b: rng.random_range(0..120) as u8,
             };
             buffer.set(
                 x,

@@ -9,3 +9,4 @@ tmp/
 tags
 .code
 .DS_Store
+.amc.toml

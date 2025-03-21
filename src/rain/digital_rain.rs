@@ -69,7 +69,7 @@ impl TerminalEffect for DigitalRain {
 impl DigitalRain {
     // Initialize screensaver
     pub fn new(options: DigitalRainOptions) -> Self {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut rain_drops: Vec<RainDrop> = vec![];
         let mut buffer: Buffer = Buffer::new(
             options.get_width() as usize,
@@ -173,8 +173,8 @@ impl DigitalRain {
         if self.rain_drops.len() >= self.options.get_max_drops_number() as usize {
             return;
         };
-        let mut rng = rand::thread_rng();
-        if rng.gen_range(0.0..=1.0) <= 0.3 {
+        let mut rng = rand::rng();
+        if rng.random_range(0.0..=1.0) <= 0.3 {
             self.rain_drops.push(RainDrop::new(
                 &self.options,
                 self.rain_drops.len() + 1,
