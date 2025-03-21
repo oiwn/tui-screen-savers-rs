@@ -7,6 +7,8 @@
 
 `tarts` (shortcut from **T**erminal **Arts**) is a collection of **MEMORY SAFE** terminal-based screen savers that bring visual delight to your command line. Built with **ZERO-COST ABSTRACTIONS**, these screen savers run efficiently while providing stunning visual effects.
 
+![digital rain](https://i.imgur.com/OPKC7Rb.png)
+
 ## ✨ Features
 
 - 🌧️ **Matrix Rain**: Experience the famous "Matrix" digital rain effect right in your terminal
