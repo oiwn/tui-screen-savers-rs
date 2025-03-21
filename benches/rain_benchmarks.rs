@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use std::time::Duration;
 use tarts::{
     common::{self, TerminalEffect},
@@ -35,7 +35,7 @@ fn vertical_worm_benchmark(c: &mut Criterion) {
     let options = get_sane_options();
     c.bench_function("benchmark_raindrop_new_1000", |b| {
         b.iter(|| {
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
             for index in 1..=1000 {
                 rain_drop::RainDrop::new(&options, index, &mut rng);
             }
@@ -43,7 +43,7 @@ fn vertical_worm_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("benchmark_raindrop_update_1000", |b| {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let options = get_sane_options();
         let mut drops: Vec<rain_drop::RainDrop> = vec![];
         for index in 1..=1000 {

@@ -1,4 +1,5 @@
 pub mod blank;
+pub mod boids;
 pub mod buffer;
 pub mod check;
 pub mod common;

@@ -9,7 +9,8 @@
 //!
 //! - Matrix Rain: Simulates the famous "Matrix" digital rain effect in your terminal.
 //! - Conway's Game of Life: Implements the classic cellular automaton in the terminal.
-//! - [not yet] Maze Generation: Generates and displays a random maze.
+//! - Maze Generation: Generates and displays a random maze.
+//! - Boids
 //!
 //! ## Usage
 //!
@@ -20,6 +21,7 @@
 //! tarts matrix
 //! tarts life
 //! tarts maze
+//! tarts boids
 //! ```
 //!
 //! ## Installation
@@ -46,11 +48,12 @@
 //!
 #![cfg(not(test))]
 use crossterm::{self, cursor, execute, terminal};
-use tarts::{config, rain};
+// use tarts::{config, rain};
 // use log::info;
 use std::{io, process};
 
 mod blank;
+mod boids;
 mod buffer;
 mod check;
 mod common;
@@ -123,6 +126,11 @@ fn main() -> Result<(), error::TartsError> {
             let mut maze = maze::Maze::new(options);
             // info!("Running Maze effect main loop...");
             common::run_loop(&mut stdout, &mut maze, None)?
+        }
+        "boids" => {
+            let options = boids::Boids::default_options(width, height);
+            let mut boids = boids::Boids::new(options);
+            common::run_loop(&mut stdout, &mut boids, None)?
         }
         "blank" => {
             // info!("Initializing Blank effect...");

@@ -67,7 +67,7 @@ impl LifeCell {
                     g: green_color,
                     b: 0,
                 }; // Green
-                let random_index = rng.gen_range(0..DEAD_CELLS_CHARS.len());
+                let random_index = rng.random_range(0..DEAD_CELLS_CHARS.len());
                 self.character = *DEAD_CELLS_CHARS.get(random_index).unwrap();
             }
             _ => {
@@ -76,7 +76,7 @@ impl LifeCell {
                     g: green_color,
                     b: 0,
                 };
-                let random_index = rng.gen_range(0..DEAD_CELLS_CHARS.len());
+                let random_index = rng.random_range(0..DEAD_CELLS_CHARS.len());
                 self.character = *DEAD_CELLS_CHARS.get(random_index).unwrap();
             }
         }
@@ -135,9 +135,13 @@ impl TerminalEffect for ConwayLife {
         for _ in 0..9 {
             // Inserting glider at a random position with random rotation
             let glider_size = 3;
-            let x = self.rng.gen_range(2..self.buffer.width - glider_size + 1);
-            let y = self.rng.gen_range(2..self.buffer.height - glider_size + 1);
-            let rotation = [0, 90, 180, 270][self.rng.gen_range(0..4)];
+            let x = self
+                .rng
+                .random_range(2..self.buffer.width - glider_size + 1);
+            let y = self
+                .rng
+                .random_range(2..self.buffer.height - glider_size + 1);
+            let rotation = [0, 90, 180, 270][self.rng.random_range(0..4)];
             insert_glider(&mut next_cells, x, y, rotation, self.current_gen);
         }
         self.cells = next_cells;
@@ -154,7 +158,7 @@ impl TerminalEffect for ConwayLife {
 
 impl ConwayLife {
     pub fn new(options: ConwayLifeOptions) -> Self {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let buffer = Buffer::new(
             options.screen_size.0 as usize,
             options.screen_size.1 as usize,
@@ -163,8 +167,8 @@ impl ConwayLife {
         let mut cells = HashMap::new();
         for _ in 0..options.initial_cells {
             let lc = LifeCell::new('*');
-            let x = rng.gen_range(0..options.screen_size.0) as usize;
-            let y = rng.gen_range(0..options.screen_size.1) as usize;
+            let x = rng.random_range(0..options.screen_size.0) as usize;
+            let y = rng.random_range(0..options.screen_size.1) as usize;
 
             cells.insert((x, y), lc);
         }

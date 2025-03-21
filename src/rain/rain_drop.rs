@@ -1,10 +1,9 @@
 // use super::rain_options::DigitalRainOptions;
 use crate::rain::digital_rain::DigitalRainOptions;
 use rand::{
-    self,
-    distributions::{Distribution, Standard},
-    seq::SliceRandom,
-    Rng,
+    self, Rng,
+    distr::{Distribution, StandardUniform},
+    seq::IndexedRandom,
 };
 use std::sync::LazyLock;
 use std::{collections::HashMap, time::Duration};
@@ -50,10 +49,10 @@ pub struct RainDrop {
     pub speed: u16,
 }
 
-impl Distribution<RainDropStyle> for Standard {
+impl Distribution<RainDropStyle> for StandardUniform {
     /// Choose from range
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> RainDropStyle {
-        match rng.gen_range(1..=100) {
+        match rng.random_range(1..=100) {
             1..=10 => RainDropStyle::Front,
             11..=20 => RainDropStyle::Middle,
             21..=40 => RainDropStyle::Back,
@@ -73,15 +72,15 @@ impl RainDrop {
     ) -> Self {
         // pick random first character
         let style: RainDropStyle = rand::random();
-        let fx: u16 = rng.gen_range(0..options.get_width());
-        let fy: f32 = rng.gen_range(0..options.get_height() / 4) as f32;
+        let fx: u16 = rng.random_range(0..options.get_width());
+        let fy: f32 = rng.random_range(0..options.get_height() / 4) as f32;
         let max_length: usize =
-            rng.gen_range(4..=(2 * options.get_height() / 3)) as usize;
+            rng.random_range(4..=(2 * options.get_height() / 3)) as usize;
 
         let speed: u16 =
-            rng.gen_range(options.get_min_speed()..=options.get_max_speed());
+            rng.random_range(options.get_min_speed()..=options.get_max_speed());
 
-        let init_length = rng.gen_range(1..max_length / 2);
+        let init_length = rng.random_range(1..max_length / 2);
         let mut body: Vec<char> = vec![*CHARACTERS.choose(rng).unwrap()];
         for _ in 1..init_length {
             body.push(*CHARACTERS.choose(rng).unwrap());
@@ -145,11 +144,11 @@ impl RainDrop {
         self.body.insert(0, *CHARACTERS.choose(rng).unwrap());
         self.style = rand::random();
         self.fy = 0.0;
-        self.fx = rng.gen_range(0..options.get_width());
+        self.fx = rng.random_range(0..options.get_width());
         self.speed =
-            rng.gen_range(options.get_min_speed()..=options.get_max_speed());
+            rng.random_range(options.get_min_speed()..=options.get_max_speed());
         self.max_length = rng
-            .gen_range(options.get_height() / 4 + 1..=(options.get_height() / 2))
+            .random_range(options.get_height() / 4 + 1..=(options.get_height() / 2))
             as usize;
     }
 
@@ -258,7 +257,7 @@ mod tests {
 
     #[test]
     fn create_new_and_reset() {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut new_drop = RainDrop::new(&get_sane_options(), 1, &mut rng);
         assert!(!new_drop.body.is_empty());
         assert!(new_drop.speed > 0);
@@ -271,7 +270,7 @@ mod tests {
 
     #[test]
     fn generate_a_lot_of_drops() {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut drops = vec![];
         for index in 1..=1000 {
             drops.push(RainDrop::new(&get_sane_options(), index, &mut rng));
@@ -313,7 +312,7 @@ mod tests {
 
     #[test]
     fn grow() {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut new_drop = RainDrop::from_values(
             1,
             vec!['a'],
@@ -359,7 +358,7 @@ mod tests {
 
     #[test]
     fn update() {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         // nothing special worm update
         let mut new_drop = RainDrop::from_values(
@@ -429,7 +428,7 @@ mod tests {
 
     #[test]
     fn out_of_bounds() {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut drops = vec![];
         for i in 1..=10 {
             drops.push(RainDrop::new(&get_sane_options(), i, &mut rng));
