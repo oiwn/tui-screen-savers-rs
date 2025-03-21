@@ -1,3 +1,6 @@
+![Crates.io Total Downloads](https://img.shields.io/crates/d/tarts)
+![GitHub License](https://img.shields.io/github/license/oiwn/tui-screen-savers-rs)
+
 # 🦀 TARTS: Terminal Arts 🎨
 
 > **BLAZINGLY FAST** terminal screensavers written in Rust!
