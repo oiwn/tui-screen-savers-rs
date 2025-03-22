@@ -1,0 +1,31 @@
+# .github/workflows/additional-checks.yml
+name: additional checks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  security-audit:
+    name: security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install cargo-audit
+        run: cargo install cargo-audit
+      - name: run security audit
+        run: cargo audit
+
+  docs:
+    name: documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: check documentation
+        env:
+          rustdocflags: "-d warnings"
+        run: cargo doc --no-deps --all-features --workspace
