@@ -15,6 +15,7 @@
 - 🧫 **Conway's Game of Life**: Watch the classic cellular automaton evolve before your eyes
 - 🧩 **Maze Generation**: Get lost in procedurally generated mazes
 - 🐦 **Boids**: Witness the emergent flocking behavior of these simulated birds
+- 🧊 3D Cube: Renders a rotating 3D cube using terminal graphics with braille patterns for higher resolution.
 
 ## 🚀 Installation
 
@@ -33,6 +34,7 @@ tarts matrix  # The classic digital rain effect
 tarts life    # Conway's Game of Life
 tarts maze    # Watch a maze generate itself
 tarts boids   # Bird-like flocking simulation
+tarts cube    # 3d rotating cube using braille patterns
 ```
 
 Press `q` or `Esc` to exit.
