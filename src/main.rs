@@ -58,6 +58,7 @@ mod buffer;
 mod check;
 mod common;
 mod config;
+mod cube;
 mod error;
 mod life;
 mod maze;
@@ -142,7 +143,11 @@ fn main() -> Result<(), error::TartsError> {
             // info!("Running Blank effect main loop...");
             common::run_loop(&mut stdout, &mut check, None)?
         }
-
+        "cube" => {
+            let options = cube::Cube::default_options(width, height);
+            let mut cube = cube::Cube::new(options);
+            common::run_loop(&mut stdout, &mut cube, None)?
+        }
         _ => {
             println!("Pick screensaver: [matrix, life, maze]");
             0.0

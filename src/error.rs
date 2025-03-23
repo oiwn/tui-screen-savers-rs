@@ -7,8 +7,8 @@ pub enum TartsError {
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
-    #[error("System error: {0}")]
-    System(String),
+    // #[error("System error: {0}")]
+    // System(String),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -21,7 +21,6 @@ pub enum ConfigError {
 
     #[error("Failed to serialize config: {0}")]
     SerializeFormat(#[from] toml::ser::Error),
-
     #[error("Missing required field: {0}")]
     MissingField(String),
 }
