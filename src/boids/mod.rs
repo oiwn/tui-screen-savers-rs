@@ -1,2 +1,3 @@
-pub mod boids;
-pub use boids::{Boids, BoidsOptions, BoidsOptionsBuilder};
+pub mod effect;
+#[allow(unused)]
+pub use effect::{Boids, BoidsOptions, BoidsOptionsBuilder};

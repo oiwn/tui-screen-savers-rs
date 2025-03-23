@@ -88,29 +88,28 @@ pub fn run_test_for_effect(effect_name: &str, frames: usize) -> Result<()> {
         "matrix" => {
             let options =
                 crate::rain::digital_rain::DigitalRainOptionsBuilder::default()
-                    .screen_size(terminal::size()?)
                     .drops_range((120, 240))
                     .speed_range((2, 16))
                     .build()
                     .unwrap();
-            let mut digital_rain =
-                crate::rain::digital_rain::DigitalRain::new(options);
+            let mut digital_rain = crate::rain::digital_rain::DigitalRain::new(
+                options,
+                terminal::size()?,
+            );
             test_effect(&mut digital_rain, frames)
         }
         "life" => {
             let options = crate::life::ConwayLifeOptionsBuilder::default()
-                .screen_size(terminal::size()?)
                 .build()
                 .unwrap();
-            let mut conway_life = crate::life::ConwayLife::new(options);
+            let mut conway_life =
+                crate::life::ConwayLife::new(options, terminal::size()?);
             test_effect(&mut conway_life, frames)
         }
         "maze" => {
-            let options = crate::maze::MazeOptionsBuilder::default()
-                .screen_size(terminal::size()?)
-                .build()
-                .unwrap();
-            let mut maze = crate::maze::Maze::new(options);
+            let options =
+                crate::maze::MazeOptionsBuilder::default().build().unwrap();
+            let mut maze = crate::maze::Maze::new(options, terminal::size()?);
             test_effect(&mut maze, frames)
         }
         _ => {

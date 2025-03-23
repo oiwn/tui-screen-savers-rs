@@ -2,6 +2,7 @@ use crate::buffer::{Buffer, Cell};
 use crate::common::{DefaultOptions, TerminalEffect};
 use crossterm::style;
 use derive_builder::Builder;
+use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
 /// Represents a 3D point in space
@@ -25,10 +26,9 @@ struct Edge {
     v2: usize,
 }
 
-#[derive(Builder, Default, Debug, Clone)]
+#[derive(Builder, Default, Debug, Clone, Serialize, Deserialize)]
 #[builder(public, setter(into))]
 pub struct CubeOptions {
-    pub screen_size: (u16, u16),
     #[builder(default = "5.0")]
     pub cube_size: f32,
     #[builder(default = "0.5")]
@@ -44,6 +44,7 @@ pub struct CubeOptions {
 }
 
 pub struct Cube {
+    pub screen_size: (u16, u16),
     options: CubeOptions,
     buffer: Buffer,
     vertices: Vec<Point3D>,
@@ -54,10 +55,8 @@ pub struct Cube {
 
 impl TerminalEffect for Cube {
     fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
-        let mut curr_buffer = Buffer::new(
-            self.options.screen_size.0 as usize,
-            self.options.screen_size.1 as usize,
-        );
+        let mut curr_buffer =
+            Buffer::new(self.screen_size.0 as usize, self.screen_size.1 as usize);
 
         // Rotate vertices
         let rotated_vertices = self.rotate_vertices();
@@ -87,20 +86,17 @@ impl TerminalEffect for Cube {
     }
 
     fn update_size(&mut self, width: u16, height: u16) {
-        self.options.screen_size = (width, height);
+        self.screen_size = (width, height);
     }
 
     fn reset(&mut self) {
-        *self = Self::new(self.options.clone());
+        *self = Self::new(self.options.clone(), self.screen_size);
     }
 }
 
 impl Cube {
-    pub fn new(options: CubeOptions) -> Self {
-        let buffer = Buffer::new(
-            options.screen_size.0 as usize,
-            options.screen_size.1 as usize,
-        );
+    pub fn new(options: CubeOptions, screen_size: (u16, u16)) -> Self {
+        let buffer = Buffer::new(screen_size.0 as usize, screen_size.1 as usize);
 
         // Define cube vertices
         let size = options.cube_size;
@@ -167,6 +163,7 @@ impl Cube {
         ];
 
         Self {
+            screen_size,
             options,
             buffer,
             vertices,
@@ -219,8 +216,8 @@ impl Cube {
         let z_factor = 1.0 / (distance + p.z);
 
         // Calculate screen coordinates
-        let width = self.options.screen_size.0 as f32;
-        let height = self.options.screen_size.1 as f32;
+        let width = self.screen_size.0 as f32;
+        let height = self.screen_size.1 as f32;
 
         let scale_factor = width.min(height) * 0.8;
 
@@ -280,8 +277,8 @@ impl Cube {
         let sy = if y0 < y1 { 1 } else { -1 };
         let mut err = dx + dy;
 
-        let width = self.options.screen_size.0 as i32;
-        let height = self.options.screen_size.1 as i32;
+        let width = self.screen_size.0 as i32;
+        let height = self.screen_size.1 as i32;
 
         loop {
             if x0 >= 0 && x0 < width && y0 >= 0 && y0 < height {
@@ -341,8 +338,8 @@ impl Cube {
         let mut err = dx + dy;
 
         // Map from braille resolution to terminal cells
-        let width = (self.options.screen_size.0 as i32) * 2;
-        let height = (self.options.screen_size.1 as i32) * 4;
+        let width = (self.screen_size.0 as i32) * 2;
+        let height = (self.screen_size.1 as i32) * 4;
 
         // Braille dot tracking
         let mut braille_map: std::collections::HashMap<(i32, i32), u8> =
@@ -389,9 +386,9 @@ impl Cube {
         // Convert our braille map to characters and set them in the buffer
         for ((x, y), dots) in braille_map {
             if x >= 0
-                && x < self.options.screen_size.0 as i32
+                && x < self.screen_size.0 as i32
                 && y >= 0
-                && y < self.options.screen_size.1 as i32
+                && y < self.screen_size.1 as i32
             {
                 // The Unicode braille patterns start at U+2800
                 // Each bit set in our dots variable corresponds to a raised dot
@@ -415,9 +412,8 @@ impl Cube {
 impl DefaultOptions for Cube {
     type Options = CubeOptions;
 
-    fn default_options(width: u16, height: u16) -> Self::Options {
+    fn default_options(_width: u16, _height: u16) -> Self::Options {
         CubeOptionsBuilder::default()
-            .screen_size((width, height))
             .cube_size(1.0)
             .rotation_speed_x(0.6)
             .rotation_speed_y(0.8)
