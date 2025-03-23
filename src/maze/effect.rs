@@ -3,6 +3,7 @@ use crate::common::{DefaultOptions, TerminalEffect};
 use crossterm::style;
 use derive_builder::Builder;
 use rand::{Rng, seq::SliceRandom};
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     sync::LazyLock,
@@ -26,13 +27,12 @@ static CHARACTERS: LazyLock<Vec<char>> = LazyLock::new(|| {
     v
 });
 
-#[derive(Builder, Default, Debug, Clone)]
+#[derive(Builder, Default, Debug, Clone, Serialize, Deserialize)]
 #[builder(public, setter(into))]
-pub struct MazeOptions {
-    pub screen_size: (u16, u16),
-}
+pub struct MazeOptions {}
 
 pub struct Maze {
+    pub screen_size: (u16, u16),
     options: MazeOptions,
     buffer: Buffer,
     initial_walls: Buffer,
@@ -126,19 +126,19 @@ impl TerminalEffect for Maze {
     }
 
     fn update_size(&mut self, width: u16, height: u16) {
-        self.options.screen_size = (width, height);
+        self.screen_size = (width, height);
     }
 
     fn reset(&mut self) {
-        let mut new_effect = Self::new(self.options.clone());
+        let mut new_effect = Self::new(self.options.clone(), self.screen_size);
         fill_initial_walls(&mut new_effect.initial_walls);
         new_effect.maze_complete = false;
         new_effect.paths.clear();
         new_effect.stack.clear();
         new_effect.rng = rand::rng();
 
-        let start_x = new_effect.rng.random_range(0..self.options.screen_size.0);
-        let start_y = new_effect.rng.random_range(0..self.options.screen_size.1);
+        let start_x = new_effect.rng.random_range(0..self.screen_size.0);
+        let start_y = new_effect.rng.random_range(0..self.screen_size.1);
         new_effect
             .stack
             .push_back((start_x as isize, start_y as isize));
@@ -147,16 +147,13 @@ impl TerminalEffect for Maze {
 }
 
 impl Maze {
-    pub fn new(options: MazeOptions) -> Self {
+    pub fn new(options: MazeOptions, screen_size: (u16, u16)) -> Self {
         let mut rng = rand::rng();
-        let buffer = Buffer::new(
-            options.screen_size.0 as usize,
-            options.screen_size.1 as usize,
-        );
+        let buffer = Buffer::new(screen_size.0 as usize, screen_size.1 as usize);
 
         let paths = HashSet::new();
-        let start_x = rng.random_range(0..options.screen_size.0);
-        let start_y = rng.random_range(0..options.screen_size.1);
+        let start_x = rng.random_range(0..screen_size.0);
+        let start_y = rng.random_range(0..screen_size.1);
         let mut stack = VecDeque::new();
         stack.push_back((start_x as isize, start_y as isize));
 
@@ -164,6 +161,7 @@ impl Maze {
         fill_initial_walls(&mut initial_walls);
 
         Self {
+            screen_size,
             options,
             buffer,
             initial_walls,
@@ -177,8 +175,8 @@ impl Maze {
     fn is_valid_cell(&self, x: isize, y: isize) -> bool {
         x >= 0
             && y >= 0
-            && (x as usize) < (self.options.screen_size.0 as usize)
-            && (y as usize) < (self.options.screen_size.1 as usize)
+            && (x as usize) < (self.screen_size.0 as usize)
+            && (y as usize) < (self.screen_size.1 as usize)
     }
 
     fn carve_path(&mut self, x: isize, y: isize) {
@@ -208,11 +206,8 @@ fn fill_initial_walls(buffer: &mut Buffer) {
 impl DefaultOptions for Maze {
     type Options = MazeOptions;
 
-    fn default_options(width: u16, height: u16) -> Self::Options {
-        MazeOptionsBuilder::default()
-            .screen_size((width, height))
-            .build()
-            .unwrap()
+    fn default_options(_width: u16, _height: u16) -> Self::Options {
+        MazeOptionsBuilder::default().build().unwrap()
     }
 }
 
@@ -222,11 +217,8 @@ mod tests {
 
     #[test]
     fn check_initial_state() {
-        let options = MazeOptionsBuilder::default()
-            .screen_size((3, 3))
-            .build()
-            .unwrap();
-        let maze = Maze::new(options);
+        let options = MazeOptionsBuilder::default().build().unwrap();
+        let maze = Maze::new(options, (3, 3));
 
         // buffer correctly initialized
         let mut initialized_cells = 0;
@@ -246,11 +238,8 @@ mod tests {
 
     #[test]
     fn check_flow() {
-        let options = MazeOptionsBuilder::default()
-            .screen_size((5, 5))
-            .build()
-            .unwrap();
-        let mut maze = Maze::new(options);
+        let options = MazeOptionsBuilder::default().build().unwrap();
+        let mut maze = Maze::new(options, (5, 5));
         maze.update();
         let diff = maze.get_diff();
         assert_eq!(diff.len(), 25);

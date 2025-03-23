@@ -1,8 +1,8 @@
 use crate::buffer::Cell;
 use crossterm::{
-    cursor, event,
+    QueueableCommand, cursor, event,
     style::{self, Stylize},
-    terminal, QueueableCommand,
+    terminal,
 };
 use std::{
     io::{BufWriter, Result, Write},
@@ -13,6 +13,7 @@ pub trait DefaultOptions {
     type Options;
 
     /// Calculate default options based on terminal dimensions
+    #[allow(unused)]
     fn default_options(width: u16, height: u16) -> Self::Options;
 }
 

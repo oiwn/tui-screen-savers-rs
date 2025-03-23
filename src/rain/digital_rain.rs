@@ -6,16 +6,17 @@ use crate::common::{DefaultOptions, TerminalEffect};
 
 use derive_builder::Builder;
 use rand::{self, Rng};
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-#[derive(Builder, Default, Debug, PartialEq, Clone)]
+#[derive(Builder, Default, Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct DigitalRainOptions {
-    pub screen_size: (u16, u16),
     pub drops_range: (u16, u16),
     pub speed_range: (u16, u16),
 }
 
 pub struct DigitalRain {
+    pub screen_size: (u16, u16),
     options: DigitalRainOptions,
     gradients: Vec<Vec<gradient::Color>>,
     rain_drops: Vec<RainDrop>,
@@ -26,10 +27,8 @@ pub struct DigitalRain {
 impl TerminalEffect for DigitalRain {
     /// Calculate difference between current frame and previous frame
     fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
-        let mut curr_buffer = Buffer::new(
-            self.options.get_width() as usize,
-            self.options.get_height() as usize,
-        );
+        let mut curr_buffer =
+            Buffer::new(self.screen_size.0 as usize, self.screen_size.1 as usize);
 
         // fill current buffer
         // first draw drops with bigger fy
@@ -44,6 +43,7 @@ impl TerminalEffect for DigitalRain {
     fn update(&mut self) {
         for rain_drop in self.rain_drops.iter_mut() {
             rain_drop.update(
+                self.screen_size,
                 &self.options,
                 Duration::from_millis(50),
                 &mut self.rng,
@@ -54,11 +54,11 @@ impl TerminalEffect for DigitalRain {
     }
 
     fn update_size(&mut self, width: u16, height: u16) {
-        self.options.screen_size = (width, height);
+        self.screen_size = (width, height);
     }
 
     fn reset(&mut self) {
-        let new_effect = DigitalRain::new(self.options.clone());
+        let new_effect = DigitalRain::new(self.options.clone(), self.screen_size);
         *self = new_effect;
     }
 }
@@ -68,15 +68,14 @@ impl TerminalEffect for DigitalRain {
 /// and width / height is actual number of columnts and rows
 impl DigitalRain {
     // Initialize screensaver
-    pub fn new(options: DigitalRainOptions) -> Self {
+    pub fn new(options: DigitalRainOptions, screen_size: (u16, u16)) -> Self {
         let mut rng = rand::rng();
         let mut rain_drops: Vec<RainDrop> = vec![];
-        let mut buffer: Buffer = Buffer::new(
-            options.get_width() as usize,
-            options.get_height() as usize,
-        );
+        let mut buffer: Buffer =
+            Buffer::new(screen_size.0 as usize, screen_size.1 as usize);
         for rain_drop_id in 1..=options.get_min_drops_number() {
             rain_drops.push(RainDrop::new(
+                screen_size,
                 &options,
                 rain_drop_id as usize,
                 &mut rng,
@@ -98,7 +97,7 @@ impl DigitalRain {
                     b: 10,
                 },
                 4,
-                3 * options.get_height() as usize / 2,
+                3 * screen_size.1 as usize / 2,
             ),
             gradient::two_step_color_gradient(
                 gradient::Color {
@@ -113,7 +112,7 @@ impl DigitalRain {
                     b: 10,
                 },
                 6,
-                3 * options.get_height() as usize / 2,
+                3 * screen_size.1 as usize / 2,
             ),
             gradient::two_step_color_gradient(
                 gradient::Color {
@@ -127,14 +126,15 @@ impl DigitalRain {
                     g: 10,
                     b: 10,
                 },
-                options.get_height() as usize / 2,
-                3 * options.get_height() as usize / 2,
+                screen_size.1 as usize / 2,
+                3 * screen_size.1 as usize / 2,
             ),
         ];
 
         Self::fill_buffer(&mut rain_drops, &mut buffer, &gradients);
 
         Self {
+            screen_size,
             options,
             gradients,
             rain_drops,
@@ -176,6 +176,7 @@ impl DigitalRain {
         let mut rng = rand::rng();
         if rng.random_range(0.0..=1.0) <= 0.3 {
             self.rain_drops.push(RainDrop::new(
+                self.screen_size,
                 &self.options,
                 self.rain_drops.len() + 1,
                 &mut rng,
@@ -185,16 +186,6 @@ impl DigitalRain {
 }
 
 impl DigitalRainOptions {
-    #[inline]
-    pub fn get_width(&self) -> u16 {
-        self.screen_size.0
-    }
-
-    #[inline]
-    pub fn get_height(&self) -> u16 {
-        self.screen_size.1
-    }
-
     #[inline]
     pub fn get_min_drops_number(&self) -> u16 {
         self.drops_range.0
@@ -233,7 +224,6 @@ impl DefaultOptions for DigitalRain {
         };
 
         DigitalRainOptionsBuilder::default()
-            .screen_size((width, height))
             .drops_range(drops_range)
             .speed_range(speed_range)
             .build()
@@ -247,7 +237,6 @@ mod tests {
 
     fn get_sane_default_options() -> DigitalRainOptions {
         DigitalRainOptionsBuilder::default()
-            .screen_size((100, 100))
             .drops_range((20, 30))
             .speed_range((10, 20))
             .build()
@@ -256,20 +245,20 @@ mod tests {
 
     #[test]
     fn create_new() {
-        let foo = DigitalRain::new(get_sane_default_options());
+        let foo = DigitalRain::new(get_sane_default_options(), (100, 100));
         assert_eq!(foo.rain_drops.len(), 20);
     }
 
     #[test]
     fn no_diff() {
-        let mut foo = DigitalRain::new(get_sane_default_options());
+        let mut foo = DigitalRain::new(get_sane_default_options(), (100, 100));
         let q = foo.get_diff();
         assert!(q.is_empty());
     }
 
     #[test]
     fn same_diff_and_update() {
-        let mut foo = DigitalRain::new(get_sane_default_options());
+        let mut foo = DigitalRain::new(get_sane_default_options(), (100, 100));
         foo.update();
         let q = foo.get_diff();
         assert!(!q.is_empty());

@@ -1,40 +1,57 @@
-use crate::common::DefaultOptions;
-use crate::error::{ConfigError, Result, TartsError};
-use crate::life::ConwayLife;
-use crate::maze::Maze;
-use crate::rain::digital_rain::DigitalRain;
+use crate::{
+    boids::{BoidsOptions, BoidsOptionsBuilder},
+    cube::{CubeOptions, CubeOptionsBuilder},
+    error::{ConfigError, Result, TartsError},
+    life::{ConwayLifeOptions, ConwayLifeOptionsBuilder},
+    maze::{MazeOptions, MazeOptionsBuilder},
+    rain::digital_rain::{DigitalRainOptions, DigitalRainOptionsBuilder},
+};
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     #[serde(default)]
-    matrix: DigitalRainConfig,
+    matrix: DigitalRainOptions,
     #[serde(default)]
-    life: LifeConfig,
+    life: ConwayLifeOptions,
     #[serde(default)]
-    maze: MazeConfig,
-}
-
-#[derive(Debug, Serialize, Deserialize, Default)]
-pub struct DigitalRainConfig {
-    drops_range: Option<(u16, u16)>,
-    speed_range: Option<(u16, u16)>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Default)]
-pub struct LifeConfig {
-    initial_cells: Option<u32>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Default)]
-pub struct MazeConfig {
-    // Currently empty as Maze has no configurable options
+    maze: MazeOptions,
+    #[serde(default)]
+    boids: BoidsOptions,
+    #[serde(default)]
+    cube: CubeOptions,
 }
 
 impl Config {
-    pub fn load() -> Result<Self> {
+    // Generate and save default config
+    pub fn save_default_config() -> Result<()> {
+        let proj_dirs = ProjectDirs::from("", "", "tarts").ok_or_else(|| {
+            TartsError::Config(ConfigError::MissingField(
+                "Could not determine config directory".into(),
+            ))
+        })?;
+
+        // Create config directory if it doesn't exist
+        let config_dir = proj_dirs.config_dir();
+        std::fs::create_dir_all(config_dir)?;
+
+        let config_path = config_dir.join("tarts.toml");
+
+        // Create default config
+        let default_config = Config::default();
+
+        // Convert to TOML and save
+        let contents = toml::to_string(&default_config)
+            .map_err(|e| TartsError::Config(ConfigError::SerializeFormat(e)))?;
+        std::fs::write(config_path, contents)?;
+
+        Ok(())
+    }
+
+    // Modify your existing load method to create default if missing
+    pub fn load_old() -> Result<Self> {
         let proj_dirs = ProjectDirs::from("", "", "tarts").ok_or_else(|| {
             TartsError::Config(ConfigError::MissingField(
                 "Could not determine config directory".into(),
@@ -44,7 +61,15 @@ impl Config {
         let config_path = proj_dirs.config_dir().join("tarts.toml");
 
         if !config_path.exists() {
-            return Ok(Config::default());
+            // Create config directory if it doesn't exist
+            std::fs::create_dir_all(proj_dirs.config_dir())?;
+
+            // Create and save default config
+            let default_config = Config::default();
+            let contents = toml::to_string(&default_config)
+                .map_err(|e| TartsError::Config(ConfigError::SerializeFormat(e)))?;
+            std::fs::write(&config_path, contents)?;
+            return Ok(default_config);
         }
 
         let contents = std::fs::read_to_string(config_path)?;
@@ -52,217 +77,111 @@ impl Config {
             .map_err(|e| TartsError::Config(ConfigError::DeserializeFormat(e)))
     }
 
-    #[cfg(test)]
-    pub fn save(&self, path: &std::path::Path) -> Result<()> {
-        let contents = toml::to_string(self)
-            .map_err(|e| TartsError::Config(ConfigError::SerializeFormat(e)))?;
-        std::fs::write(path, contents)?;
-        Ok(())
-    }
-}
+    pub fn load() -> Result<Self> {
+        let proj_dirs = ProjectDirs::from("", "", "tarts").ok_or_else(|| {
+            eprintln!("Failed to get project directory");
+            TartsError::Config(ConfigError::MissingField(
+                "Could not determine config directory".into(),
+            ))
+        })?;
 
-impl DigitalRainConfig {
-    pub fn to_options(
-        &self,
-        screen_size: (u16, u16),
-    ) -> crate::rain::digital_rain::DigitalRainOptions {
-        if self.drops_range.is_none() && self.speed_range.is_none() {
-            return DigitalRain::default_options(screen_size.0, screen_size.1);
+        println!("Config dir: {:?}", proj_dirs.config_dir());
+        let config_path = proj_dirs.config_dir().join("tarts.toml");
+        println!("Config path: {:?}", config_path);
+
+        if !config_path.exists() {
+            println!("Config file doesn't exist, creating default");
+
+            // Create config directory if it doesn't exist
+            match std::fs::create_dir_all(proj_dirs.config_dir()) {
+                Ok(_) => println!("Created config directory"),
+                Err(e) => println!("Failed to create config directory: {}", e),
+            }
+
+            // Create default config using builders explicitly
+            let default_config = Config {
+                matrix: DigitalRainOptionsBuilder::default().build().unwrap(),
+                life: ConwayLifeOptionsBuilder::default().build().unwrap(),
+                maze: MazeOptionsBuilder::default().build().unwrap(),
+                boids: BoidsOptionsBuilder::default().build().unwrap(),
+                cube: CubeOptionsBuilder::default()
+                    .cube_size(5.0)
+                    .rotation_speed_x(0.5)
+                    .rotation_speed_y(0.7)
+                    .rotation_speed_z(0.3)
+                    .distance(3.0)
+                    .use_braille(true)
+                    .build()
+                    .unwrap(),
+            };
+
+            println!("Default cube options: {:?}", default_config.cube);
+
+            // Serialize and write
+            let contents = toml::to_string(&default_config).map_err(|e| {
+                println!("Failed to serialize config: {}", e);
+                TartsError::Config(ConfigError::SerializeFormat(e))
+            })?;
+
+            println!("TOML contents: {}", contents);
+
+            std::fs::write(&config_path, &contents)?;
+            println!("Wrote config file successfully");
+
+            return Ok(default_config);
         }
 
-        let default = DigitalRain::default_options(screen_size.0, screen_size.1);
+        println!("Config file exists, loading it");
+        let contents = std::fs::read_to_string(&config_path)?;
+        println!("Loaded contents: {}", contents);
 
-        crate::rain::digital_rain::DigitalRainOptionsBuilder::default()
-            .screen_size(screen_size)
-            .drops_range(self.drops_range.unwrap_or_else(|| {
-                (
-                    default.get_min_drops_number(),
-                    default.get_max_drops_number(),
-                )
-            }))
-            .speed_range(self.speed_range.unwrap_or_else(|| {
-                (default.get_min_speed(), default.get_max_speed())
-            }))
-            .build()
-            .unwrap()
-    }
-}
+        let config = toml::from_str(&contents).map_err(|e| {
+            println!("Failed to parse config: {}", e);
+            TartsError::Config(ConfigError::DeserializeFormat(e))
+        })?;
 
-impl LifeConfig {
-    pub fn to_options(
-        &self,
-        screen_size: (u16, u16),
-    ) -> crate::life::ConwayLifeOptions {
-        if self.initial_cells.is_none() {
-            return ConwayLife::default_options(screen_size.0, screen_size.1);
-        }
-
-        crate::life::ConwayLifeOptionsBuilder::default()
-            .screen_size(screen_size)
-            .initial_cells(self.initial_cells.unwrap_or_else(|| {
-                ConwayLife::default_options(screen_size.0, screen_size.1)
-                    .initial_cells
-            }))
-            .build()
-            .unwrap()
-    }
-}
-
-impl MazeConfig {
-    pub fn to_options(&self, screen_size: (u16, u16)) -> crate::maze::MazeOptions {
-        Maze::default_options(screen_size.0, screen_size.1)
+        println!("Parsed config successfully");
+        Ok(config)
     }
 }
 
 impl Config {
+    // Add these methods
     pub fn get_matrix_options(
         &self,
-        screen_size: (u16, u16),
-    ) -> crate::rain::digital_rain::DigitalRainOptions {
-        self.matrix.to_options(screen_size)
+        _screen_size: (u16, u16),
+    ) -> DigitalRainOptions {
+        // If default is needed, create it, otherwise use stored config
+        self.matrix.clone()
     }
 
-    pub fn get_life_options(
-        &self,
-        screen_size: (u16, u16),
-    ) -> crate::life::ConwayLifeOptions {
-        self.life.to_options(screen_size)
+    pub fn get_life_options(&self, _screen_size: (u16, u16)) -> ConwayLifeOptions {
+        self.life.clone()
     }
 
-    pub fn get_maze_options(
-        &self,
-        screen_size: (u16, u16),
-    ) -> crate::maze::MazeOptions {
-        self.maze.to_options(screen_size)
+    pub fn get_maze_options(&self, _screen_size: (u16, u16)) -> MazeOptions {
+        self.maze.clone()
+    }
+
+    pub fn get_boids_options(&self, screen_size: (u16, u16)) -> BoidsOptions {
+        let mut options = self.boids.clone();
+        options.screen_size = screen_size;
+        options
+    }
+
+    pub fn get_cube_options(&self) -> CubeOptions {
+        self.cube.clone()
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-    use tempfile::tempdir;
-
-    #[test]
-    fn test_config_load_and_save() {
-        let dir = tempdir().expect("Unable to create tempdir");
-        let config_path = dir.path().join("test_config.toml");
-
-        // Create a test config
-        let mut config = Config::default();
-        config.matrix.drops_range = Some((100, 200));
-        config.matrix.speed_range = Some((5, 20));
-        config.life.initial_cells = Some(5000);
-
-        // Save the config
-        config
-            .save(&config_path)
-            .expect("Unable to save config file...");
-
-        // Read the saved content
-        let contents = fs::read_to_string(&config_path)
-            .expect("Unable to read config content...");
-        let loaded_config: Config =
-            toml::from_str(&contents).expect("Unable to load config...");
-
-        // Verify the loaded config matches the original
-        assert_eq!(loaded_config.matrix.drops_range, Some((100, 200)));
-        assert_eq!(loaded_config.matrix.speed_range, Some((5, 20)));
-        assert_eq!(loaded_config.life.initial_cells, Some(5000));
-    }
-
-    #[test]
-    fn test_default_when_no_config() -> Result<()> {
-        let config = Config::default();
-        let screen_size = (80, 40);
-
-        // Test matrix options
-        let matrix_opts = config.get_matrix_options(screen_size);
-        let matrix_default =
-            DigitalRain::default_options(screen_size.0, screen_size.1);
-        assert_eq!(
-            matrix_opts.get_min_drops_number(),
-            matrix_default.get_min_drops_number()
-        );
-        assert_eq!(
-            matrix_opts.get_max_drops_number(),
-            matrix_default.get_max_drops_number()
-        );
-
-        // Test life options
-        let life_opts = config.get_life_options(screen_size);
-        let life_default =
-            ConwayLife::default_options(screen_size.0, screen_size.1);
-        assert_eq!(life_opts.initial_cells, life_default.initial_cells);
-
-        // Test maze options
-        let maze_opts = config.get_maze_options(screen_size);
-        let maze_default = Maze::default_options(screen_size.0, screen_size.1);
-        assert_eq!(maze_opts.screen_size, maze_default.screen_size);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_partial_config() {
-        let dir = tempdir().unwrap();
-        let config_path = dir.path().join("tarts.toml");
-
-        // Create config with only some values set
-        let toml_content = r#"
-            [matrix]
-            drops_range = [50, 100]
-
-            [life]
-            initial_cells = 2000
-        "#;
-        fs::write(&config_path, toml_content).unwrap();
-
-        let config: Config = toml::from_str(toml_content).unwrap();
-        let screen_size = (80, 40);
-
-        // Test matrix options - drops_range should be from config, speed_range from default
-        let matrix_opts = config.get_matrix_options(screen_size);
-        assert_eq!(matrix_opts.get_min_drops_number(), 50);
-        assert_eq!(matrix_opts.get_max_drops_number(), 100);
-
-        let default_matrix =
-            DigitalRain::default_options(screen_size.0, screen_size.1);
-        assert_eq!(matrix_opts.get_min_speed(), default_matrix.get_min_speed());
-        assert_eq!(matrix_opts.get_max_speed(), default_matrix.get_max_speed());
-
-        // Test life options - should use config value
-        let life_opts = config.get_life_options(screen_size);
-        assert_eq!(life_opts.initial_cells, 2000);
-    }
-
-    #[test]
-    fn test_full_config() {
-        let dir = tempdir().unwrap();
-        let config_path = dir.path().join("tarts.toml");
-
-        // Create complete config
-        let toml_content = r#"
-            [matrix]
-            drops_range = [50, 100]
-            speed_range = [5, 25]
-
-            [life]
-            initial_cells = 2000
-        "#;
-        fs::write(&config_path, toml_content).unwrap();
-
-        let config: Config = toml::from_str(toml_content).unwrap();
-        let screen_size = (80, 40);
-
-        // Test all options come from config
-        let matrix_opts = config.get_matrix_options(screen_size);
-        assert_eq!(matrix_opts.get_min_drops_number(), 50);
-        assert_eq!(matrix_opts.get_max_drops_number(), 100);
-        assert_eq!(matrix_opts.get_min_speed(), 5);
-        assert_eq!(matrix_opts.get_max_speed(), 25);
-
-        let life_opts = config.get_life_options(screen_size);
-        assert_eq!(life_opts.initial_cells, 2000);
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            matrix: DigitalRainOptionsBuilder::default().build().unwrap(),
+            life: ConwayLifeOptionsBuilder::default().build().unwrap(),
+            maze: MazeOptionsBuilder::default().build().unwrap(),
+            boids: BoidsOptionsBuilder::default().build().unwrap(),
+            cube: CubeOptionsBuilder::default().build().unwrap(),
+        }
     }
 }

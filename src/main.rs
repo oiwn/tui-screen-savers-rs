@@ -50,6 +50,7 @@
 use crossterm::{self, cursor, execute, terminal};
 // use tarts::{config, rain};
 // use log::info;
+use crate::common::DefaultOptions;
 use std::{io, process};
 
 mod blank;
@@ -64,9 +65,11 @@ mod life;
 mod maze;
 mod rain;
 
-use crate::common::DefaultOptions;
+// use crate::common::DefaultOptions;
+use crate::config::Config;
 
-const HELP: &str = "Terminal screensavers, run with arg: matrix, life, maze";
+const HELP: &str =
+    "Terminal screensavers, run with arg: matrix, life, maze, boids, cube";
 
 #[derive(Debug)]
 struct AppArgs {
@@ -78,6 +81,7 @@ struct AppArgs {
 
 fn main() -> Result<(), error::TartsError> {
     env_logger::init();
+    // let config = Config::load()?;
 
     let args = match parse_args() {
         Ok(v) => v,
@@ -107,45 +111,40 @@ fn main() -> Result<(), error::TartsError> {
 
     let fps = match args.screen_saver.as_str() {
         "matrix" => {
-            // info!("Initializing DigitalRain effect...");
+            // let options = config.get_matrix_options((width, height));
             let options =
                 rain::digital_rain::DigitalRain::default_options(width, height);
-            let mut digital_rain = rain::digital_rain::DigitalRain::new(options);
-            // info!("Running DigitalRain effect main loop...");
+            let mut digital_rain =
+                rain::digital_rain::DigitalRain::new(options, (width, height));
             common::run_loop(&mut stdout, &mut digital_rain, None)?
         }
         "life" => {
-            // info!("Initializing Life effect...");
+            // let options = config.get_life_options((width, height));
             let options = life::ConwayLife::default_options(width, height);
-            let mut conway_life = life::ConwayLife::new(options);
-            // info!("Running Life effect main loop...");
+            let mut conway_life = life::ConwayLife::new(options, (width, height));
             common::run_loop(&mut stdout, &mut conway_life, None)?
         }
         "maze" => {
-            // info!("Initializing Maze effect...");
+            // let options = config.get_maze_options((width, height));
             let options = maze::Maze::default_options(width, height);
-            let mut maze = maze::Maze::new(options);
-            // info!("Running Maze effect main loop...");
+            let mut maze = maze::Maze::new(options, (width, height));
             common::run_loop(&mut stdout, &mut maze, None)?
         }
         "boids" => {
+            // let options = config.get_boids_options((width, height));
             let options = boids::Boids::default_options(width, height);
             let mut boids = boids::Boids::new(options);
             common::run_loop(&mut stdout, &mut boids, None)?
         }
         "blank" => {
-            // info!("Initializing Blank effect...");
-            let options = blank::BlankOptionsBuilder::default()
-                .screen_size((width, height))
-                .build()
-                .unwrap();
-            let mut check = blank::Blank::new(options);
-            // info!("Running Blank effect main loop...");
+            let options = blank::BlankOptionsBuilder::default().build().unwrap();
+            let mut check = blank::Blank::new(options, (width, height));
             common::run_loop(&mut stdout, &mut check, None)?
         }
         "cube" => {
-            let options = cube::Cube::default_options(width, height);
-            let mut cube = cube::Cube::new(options);
+            // let options = config.get_cube_options();
+            let options = cube::effect::Cube::default_options(width, height);
+            let mut cube = cube::Cube::new(options, (width, height));
             common::run_loop(&mut stdout, &mut cube, None)?
         }
         _ => {
@@ -171,6 +170,16 @@ fn parse_args() -> Result<AppArgs, pico_args::Error> {
 
     if pargs.contains(["-h", "--help"]) {
         print!("{}", HELP);
+        process::exit(0);
+    }
+
+    // Add this check
+    if pargs.contains("--generate-config") {
+        if let Err(e) = Config::save_default_config() {
+            eprintln!("Failed to generate config: {}", e);
+            process::exit(1);
+        }
+        println!("Default configuration generated successfully");
         process::exit(0);
     }
 

@@ -3,6 +3,7 @@ use crate::common::{DefaultOptions, TerminalEffect};
 use crossterm::style;
 use derive_builder::Builder;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 // Individual boid
@@ -14,10 +15,10 @@ struct Boid {
     color: style::Color,  // Color based on velocity/state
 }
 
-#[derive(Builder, Default, Debug, Clone)]
+#[derive(Builder, Default, Debug, Clone, Serialize, Deserialize)]
 #[builder(public, setter(into))]
 pub struct BoidsOptions {
-    screen_size: (u16, u16),
+    pub screen_size: (u16, u16),
     #[builder(default = "100")]
     boid_count: u16,
 

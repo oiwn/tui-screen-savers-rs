@@ -15,6 +15,7 @@ use crate::common::{DefaultOptions, TerminalEffect};
 use crossterm::style;
 use derive_builder::Builder;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
@@ -24,11 +25,9 @@ static DEAD_CELLS_CHARS: LazyLock<Vec<char>> = LazyLock::new(|| {
     char_vec
 });
 
-#[derive(Builder, Default, Debug)]
+#[derive(Builder, Default, Debug, Serialize, Deserialize, Clone)]
 #[builder(public, setter(into))]
 pub struct ConwayLifeOptions {
-    screen_size: (u16, u16),
-    // #[builder(default = "3000")]
     pub initial_cells: u32,
 }
 
@@ -39,6 +38,8 @@ pub struct LifeCell {
 }
 
 pub struct ConwayLife {
+    pub screen_size: (u16, u16),
+    #[allow(dead_code)]
     options: ConwayLifeOptions,
     buffer: Buffer,
     cells: HashMap<(usize, usize), LifeCell>,
@@ -85,10 +86,8 @@ impl LifeCell {
 
 impl TerminalEffect for ConwayLife {
     fn get_diff(&mut self) -> Vec<(usize, usize, Cell)> {
-        let mut curr_buffer = Buffer::new(
-            self.options.screen_size.0 as usize,
-            self.options.screen_size.1 as usize,
-        );
+        let mut curr_buffer =
+            Buffer::new(self.screen_size.0 as usize, self.screen_size.1 as usize);
 
         // fill current buffer
         self.fill_buffer(&mut curr_buffer);
@@ -148,7 +147,7 @@ impl TerminalEffect for ConwayLife {
     }
 
     fn update_size(&mut self, width: u16, height: u16) {
-        self.options.screen_size = (width, height);
+        self.screen_size = (width, height);
     }
 
     fn reset(&mut self) {
@@ -157,23 +156,21 @@ impl TerminalEffect for ConwayLife {
 }
 
 impl ConwayLife {
-    pub fn new(options: ConwayLifeOptions) -> Self {
+    pub fn new(options: ConwayLifeOptions, screen_size: (u16, u16)) -> Self {
         let mut rng = rand::rng();
-        let buffer = Buffer::new(
-            options.screen_size.0 as usize,
-            options.screen_size.1 as usize,
-        );
+        let buffer = Buffer::new(screen_size.0 as usize, screen_size.1 as usize);
 
         let mut cells = HashMap::new();
         for _ in 0..options.initial_cells {
             let lc = LifeCell::new('*');
-            let x = rng.random_range(0..options.screen_size.0) as usize;
-            let y = rng.random_range(0..options.screen_size.1) as usize;
+            let x = rng.random_range(0..screen_size.0) as usize;
+            let y = rng.random_range(0..screen_size.1) as usize;
 
             cells.insert((x, y), lc);
         }
 
         Self {
+            screen_size,
             options,
             buffer,
             cells,
@@ -288,7 +285,6 @@ impl DefaultOptions for ConwayLife {
         let initial_cells = ((width as u32 * height as u32) as f32 * 0.3) as u32; // 30% of screen space
 
         ConwayLifeOptionsBuilder::default()
-            .screen_size((width, height))
             .initial_cells(initial_cells)
             .build()
             .unwrap()

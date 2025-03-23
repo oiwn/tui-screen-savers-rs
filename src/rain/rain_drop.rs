@@ -66,16 +66,17 @@ impl Distribution<RainDropStyle> for StandardUniform {
 impl RainDrop {
     /// Create new rain drop with sane random defaults
     pub fn new(
+        screen_size: (u16, u16),
         options: &DigitalRainOptions,
         drop_id: usize,
         rng: &mut rand::prelude::ThreadRng,
     ) -> Self {
         // pick random first character
         let style: RainDropStyle = rand::random();
-        let fx: u16 = rng.random_range(0..options.get_width());
-        let fy: f32 = rng.random_range(0..options.get_height() / 4) as f32;
+        let fx: u16 = rng.random_range(0..screen_size.0);
+        let fy: f32 = rng.random_range(0..screen_size.1 / 4) as f32;
         let max_length: usize =
-            rng.random_range(4..=(2 * options.get_height() / 3)) as usize;
+            rng.random_range(4..=(2 * screen_size.1 / 3)) as usize;
 
         let speed: u16 =
             rng.random_range(options.get_min_speed()..=options.get_max_speed());
@@ -137,6 +138,7 @@ impl RainDrop {
     /// Reset worm to the sane defaults
     fn reset(
         &mut self,
+        screen_size: (u16, u16),
         options: &DigitalRainOptions,
         rng: &mut rand::prelude::ThreadRng,
     ) {
@@ -144,12 +146,11 @@ impl RainDrop {
         self.body.insert(0, *CHARACTERS.choose(rng).unwrap());
         self.style = rand::random();
         self.fy = 0.0;
-        self.fx = rng.random_range(0..options.get_width());
+        self.fx = rng.random_range(0..screen_size.0);
         self.speed =
             rng.random_range(options.get_min_speed()..=options.get_max_speed());
-        self.max_length = rng
-            .random_range(options.get_height() / 4 + 1..=(options.get_height() / 2))
-            as usize;
+        self.max_length =
+            rng.random_range(screen_size.1 / 4 + 1..=(screen_size.1 / 2)) as usize;
     }
 
     /// Grow condition
@@ -197,13 +198,14 @@ impl RainDrop {
     /// by screen width and height, this should be handled during draw process
     pub fn update(
         &mut self,
+        screen_size: (u16, u16),
         options: &DigitalRainOptions,
         dt: Duration,
         rng: &mut rand::prelude::ThreadRng,
     ) {
         // NOTE: looks like guard, but why i even need it here?
         if self.body.is_empty() {
-            self.reset(options, rng);
+            self.reset(screen_size, options, rng);
             return;
         }
 
@@ -213,7 +215,7 @@ impl RainDrop {
         // calculate head and tail y coordinate
         let head_y = fy.round() as u16;
         let tail_y = fy.round() as i16 - self.body.len() as i16;
-        let height = options.get_height();
+        let height = screen_size.1;
 
         if tail_y <= 0 {
             // not fully come out from top
@@ -237,7 +239,7 @@ impl RainDrop {
 
         // NOTE: need this to reset
         if tail_y as u16 >= height {
-            self.reset(options, rng);
+            self.reset(screen_size, options, rng);
         };
     }
 }
@@ -248,7 +250,6 @@ mod tests {
 
     fn get_sane_options() -> DigitalRainOptions {
         DigitalRainOptionsBuilder::default()
-            .screen_size((100, 100))
             .drops_range((20, 30))
             .speed_range((10, 20))
             .build()
@@ -258,11 +259,12 @@ mod tests {
     #[test]
     fn create_new_and_reset() {
         let mut rng = rand::rng();
-        let mut new_drop = RainDrop::new(&get_sane_options(), 1, &mut rng);
+        let mut new_drop =
+            RainDrop::new((100, 100), &get_sane_options(), 1, &mut rng);
         assert!(!new_drop.body.is_empty());
         assert!(new_drop.speed > 0);
 
-        new_drop.reset(&get_sane_options(), &mut rng);
+        new_drop.reset((100, 100), &get_sane_options(), &mut rng);
         assert_eq!(new_drop.fy, 0.0);
         assert_eq!(new_drop._drop_id, 1);
         assert_eq!(new_drop.body.len(), 1);
@@ -273,7 +275,12 @@ mod tests {
         let mut rng = rand::rng();
         let mut drops = vec![];
         for index in 1..=1000 {
-            drops.push(RainDrop::new(&get_sane_options(), index, &mut rng));
+            drops.push(RainDrop::new(
+                (100, 100),
+                &get_sane_options(),
+                index,
+                &mut rng,
+            ));
         }
         assert_eq!(drops.len(), 1000);
     }
@@ -370,14 +377,24 @@ mod tests {
             3,
             10,
         );
-        new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
+        new_drop.update(
+            (100, 100),
+            &get_sane_options(),
+            Duration::from_millis(1000),
+            &mut rng,
+        );
         assert_eq!(new_drop.fy.round() as u16, 21);
         assert_eq!(new_drop.body.len(), 3);
 
         // edge case when body len is 0 (why?)
         let mut new_drop =
             RainDrop::from_values(1, vec![], RainDropStyle::Middle, 10, 10.8, 3, 8);
-        new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
+        new_drop.update(
+            (100, 100),
+            &get_sane_options(),
+            Duration::from_millis(1000),
+            &mut rng,
+        );
         assert_eq!(new_drop.body.len(), 1);
         assert_eq!(new_drop.fy, 0.0); // should be out of the h bounds and reseted
 
@@ -391,7 +408,12 @@ mod tests {
             5,
             2,
         );
-        new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
+        new_drop.update(
+            (100, 100),
+            &get_sane_options(),
+            Duration::from_millis(1000),
+            &mut rng,
+        );
         assert_eq!(new_drop.body.len(), 5);
         assert!((new_drop.fy - new_drop.body.len() as f32) < 0.0);
 
@@ -405,7 +427,12 @@ mod tests {
             5,
             2,
         );
-        new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
+        new_drop.update(
+            (100, 100),
+            &get_sane_options(),
+            Duration::from_millis(1000),
+            &mut rng,
+        );
         assert_eq!(new_drop.body.len(), 5);
         assert!(new_drop.fy > 30.0);
 
@@ -419,10 +446,20 @@ mod tests {
             5,
             2,
         );
-        new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
+        new_drop.update(
+            (100, 100),
+            &get_sane_options(),
+            Duration::from_millis(1000),
+            &mut rng,
+        );
         assert_eq!(new_drop.body.len(), 3);
         assert_eq!(new_drop.fy, 31.0);
-        new_drop.update(&get_sane_options(), Duration::from_millis(1000), &mut rng);
+        new_drop.update(
+            (100, 100),
+            &get_sane_options(),
+            Duration::from_millis(1000),
+            &mut rng,
+        );
         assert_eq!(new_drop.fy, 33.0); // should be reseted there
     }
 
@@ -431,13 +468,14 @@ mod tests {
         let mut rng = rand::rng();
         let mut drops = vec![];
         for i in 1..=10 {
-            drops.push(RainDrop::new(&get_sane_options(), i, &mut rng));
+            drops.push(RainDrop::new((100, 100), &get_sane_options(), i, &mut rng));
         }
         assert_eq!(drops.len(), 10);
 
         for _ in 1..=1000 {
             for drop in drops.iter_mut() {
                 drop.update(
+                    (100, 100),
                     &get_sane_options(),
                     Duration::from_millis(100),
                     &mut rng,
