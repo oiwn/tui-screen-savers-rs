@@ -1,3 +1,3 @@
-pub mod conway_life;
+pub mod effect;
 #[allow(unused)]
-pub use conway_life::{ConwayLife, ConwayLifeOptions, ConwayLifeOptionsBuilder};
+pub use effect::{ConwayLife, ConwayLifeOptions, ConwayLifeOptionsBuilder};

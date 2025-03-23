@@ -4,6 +4,7 @@ pub mod buffer;
 pub mod check;
 pub mod common;
 pub mod config;
+pub mod cube;
 pub mod error;
 pub mod life;
 pub mod maze;
