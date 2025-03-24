@@ -41,6 +41,11 @@ pub fn process_input() -> Result<bool> {
                         event::KeyCode::Esc,
                         event::KeyModifiers::NONE,
                     )
+                || keyevent
+                    == event::KeyEvent::new(
+                        event::KeyCode::Char('c'),
+                        event::KeyModifiers::CONTROL,
+                    )
             {
                 return Ok(false);
             }
