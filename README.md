@@ -1,5 +1,6 @@
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/tarts)
 ![GitHub License](https://img.shields.io/github/license/oiwn/tui-screen-savers-rs)
+[![codecov](https://codecov.io/gh/oiwn/tui-screen-savers-rs/graph/badge.svg?token=C7G4AX1ASV)](https://codecov.io/gh/oiwn/tui-screen-savers-rs)
 
 # 🦀 TARTS: Terminal Arts 🎨
 
