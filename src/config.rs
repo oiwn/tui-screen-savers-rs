@@ -1,5 +1,6 @@
 use crate::{
     boids::{BoidsOptions, BoidsOptionsBuilder},
+    crab::{CrabOptions, CrabOptionsBuilder},
     cube::{CubeOptions, CubeOptionsBuilder},
     error::{ConfigError, Result, TartsError},
     life::{ConwayLifeOptions, ConwayLifeOptionsBuilder},
@@ -22,6 +23,8 @@ pub struct Config {
     boids: BoidsOptions,
     #[serde(default)]
     cube: CubeOptions,
+    #[serde(default)]
+    crab: CrabOptions,
 }
 
 impl Config {
@@ -51,6 +54,7 @@ impl Config {
     }
 
     // Modify your existing load method to create default if missing
+    #[allow(dead_code)]
     pub fn load_old() -> Result<Self> {
         let proj_dirs = ProjectDirs::from("", "", "tarts").ok_or_else(|| {
             TartsError::Config(ConfigError::MissingField(
@@ -77,6 +81,7 @@ impl Config {
             .map_err(|e| TartsError::Config(ConfigError::DeserializeFormat(e)))
     }
 
+    #[allow(dead_code)]
     pub fn load() -> Result<Self> {
         let proj_dirs = ProjectDirs::from("", "", "tarts").ok_or_else(|| {
             eprintln!("Failed to get project directory");
@@ -104,15 +109,8 @@ impl Config {
                 life: ConwayLifeOptionsBuilder::default().build().unwrap(),
                 maze: MazeOptionsBuilder::default().build().unwrap(),
                 boids: BoidsOptionsBuilder::default().build().unwrap(),
-                cube: CubeOptionsBuilder::default()
-                    .cube_size(5.0)
-                    .rotation_speed_x(0.5)
-                    .rotation_speed_y(0.7)
-                    .rotation_speed_z(0.3)
-                    .distance(3.0)
-                    .use_braille(true)
-                    .build()
-                    .unwrap(),
+                cube: CubeOptionsBuilder::default().build().unwrap(),
+                crab: CrabOptionsBuilder::default().build().unwrap(),
             };
 
             println!("Default cube options: {:?}", default_config.cube);
@@ -145,6 +143,8 @@ impl Config {
     }
 }
 
+// FIXIT: need to do something with this mess
+#[allow(unused)]
 impl Config {
     // Add these methods
     pub fn get_matrix_options(
@@ -172,6 +172,10 @@ impl Config {
     pub fn get_cube_options(&self) -> CubeOptions {
         self.cube.clone()
     }
+
+    pub fn get_crab_options(&self) -> CrabOptions {
+        self.crab.clone()
+    }
 }
 
 impl Default for Config {
@@ -182,6 +186,7 @@ impl Default for Config {
             maze: MazeOptionsBuilder::default().build().unwrap(),
             boids: BoidsOptionsBuilder::default().build().unwrap(),
             cube: CubeOptionsBuilder::default().build().unwrap(),
+            crab: CrabOptionsBuilder::default().build().unwrap(),
         }
     }
 }
