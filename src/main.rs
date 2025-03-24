@@ -22,6 +22,8 @@
 //! tarts life
 //! tarts maze
 //! tarts boids
+//! tarts cube
+//! tarts crab
 //! ```
 //!
 //! ## Installation
@@ -59,6 +61,7 @@ mod buffer;
 mod check;
 mod common;
 mod config;
+mod crab;
 mod cube;
 mod error;
 mod life;
@@ -69,7 +72,7 @@ mod rain;
 use crate::config::Config;
 
 const HELP: &str =
-    "Terminal screensavers, run with arg: matrix, life, maze, boids, cube";
+    "Terminal screensavers, run with arg: matrix, life, maze, boids, cube, crab";
 
 #[derive(Debug)]
 struct AppArgs {
@@ -146,6 +149,11 @@ fn main() -> Result<(), error::TartsError> {
             let options = cube::effect::Cube::default_options(width, height);
             let mut cube = cube::Cube::new(options, (width, height));
             common::run_loop(&mut stdout, &mut cube, None)?
+        }
+        "crab" => {
+            let options = crab::Crab::default_options(width, height);
+            let mut crab = crab::Crab::new(options, (width, height));
+            common::run_loop(&mut stdout, &mut crab, None)?
         }
         _ => {
             println!("Pick screensaver: [matrix, life, maze]");
