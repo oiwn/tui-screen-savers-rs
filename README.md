@@ -27,6 +27,8 @@ Install directly using cargo:
 cargo install tarts
 ```
 
+or you can use it like a library for your own TUI app!
+
 ## 🛠️ Usage
 
 To use the screen savers, run the executable with the desired screen saver's name as an argument:
@@ -40,16 +42,11 @@ tarts cube    # 3d rotating cube using braille patterns
 tarts crab    # Ferris the crab with collisions
 ```
 
-Press `q` or `Esc` to exit.
+Press `q` or `Esc` to exit (or even Ctrl+C).
 
 ## ⚙️ Configuration
 
-The screen savers can be configured via command line arguments:
-
-```bash
-# Test an effect for a specific number of frames
-tarts --check --effect matrix --frames 100
-```
+Not implemented yet. I think it should be toml file where you can set options for effects.
 
 ## 🧪 Development
 
