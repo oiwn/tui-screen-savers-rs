@@ -3,7 +3,6 @@ use crate::common::{DefaultOptions, TerminalEffect};
 use crossterm::style;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use std::f32::consts::PI;
 
 #[derive(Builder, Default, Debug, Clone, Serialize, Deserialize)]
 #[builder(public, setter(into))]
@@ -22,7 +21,9 @@ pub struct DonutOptions {
     pub k1: f32,
     #[builder(default = "true")]
     pub use_braille: bool,
-    #[builder(default = "vec!['.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@']")]
+    #[builder(
+        default = "vec!['.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@']"
+    )]
     pub luminance_chars: Vec<char>,
 }
 
@@ -102,7 +103,8 @@ impl Donut {
                 let cos_phi = phi.cos();
 
                 // Compute the x,y coordinate of the circle before revolving
-                let circle_x = self.options.outer_radius + self.options.inner_radius * cos_theta;
+                let circle_x = self.options.outer_radius
+                    + self.options.inner_radius * cos_theta;
                 let circle_y = self.options.inner_radius * sin_theta;
 
                 // Final 3D (x,y,z) coordinate after rotations
@@ -117,17 +119,23 @@ impl Donut {
 
                 // Project into 2D
                 let x_proj = (width as f32 / 2.0
-                    + self.options.k1 * z_inv * x * (height as f32 / width as f32 * 2.0))
+                    + self.options.k1
+                        * z_inv
+                        * x
+                        * (height as f32 / width as f32 * 2.0))
                     as usize;
-                let y_proj = (height as f32 / 2.0 + self.options.k1 * z_inv * y) as usize;
+                let y_proj =
+                    (height as f32 / 2.0 + self.options.k1 * z_inv * y) as usize;
 
                 // Calculate luminance
-                let l = cos_phi * cos_theta * sin_b - cos_a * cos_theta * sin_phi
+                let l = cos_phi * cos_theta * sin_b
+                    - cos_a * cos_theta * sin_phi
                     - sin_a * sin_theta
                     + cos_b * (cos_a * sin_theta - cos_theta * sin_a * sin_phi);
 
                 if l > 0.0 {
-                    let luminance_index = ((l * 8.0) as usize).min(self.options.luminance_chars.len() - 1);
+                    let luminance_index = ((l * 8.0) as usize)
+                        .min(self.options.luminance_chars.len() - 1);
                     let c = self.options.luminance_chars[luminance_index];
 
                     // Check bounds
@@ -174,7 +182,9 @@ impl DefaultOptions for Donut {
             .distance(5.0)
             .k1(25.0)
             .use_braille(false)
-            .luminance_chars(vec!['.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@'])
+            .luminance_chars(vec![
+                '.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@',
+            ])
             .build()
             .unwrap()
     }
