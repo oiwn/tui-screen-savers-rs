@@ -10,3 +10,4 @@ pub mod error;
 pub mod life;
 pub mod maze;
 pub mod rain;
+pub mod donut;
