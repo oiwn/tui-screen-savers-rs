@@ -68,11 +68,12 @@ mod life;
 mod maze;
 mod rain;
 
-// use crate::common::DefaultOptions;
 use crate::config::Config;
 
 const HELP: &str =
     "Terminal screensavers, run with arg: matrix, life, maze, boids, cube, crab";
+const VALID_SAVERS: &[&str] =
+    &["matrix", "life", "maze", "boids", "blank", "cube", "crab"];
 
 #[derive(Debug)]
 struct AppArgs {
@@ -80,6 +81,44 @@ struct AppArgs {
     check: bool,
     effect: Option<String>,
     frames: Option<usize>,
+}
+
+/// Guard to drop out alternate screen in case of errors
+struct TerminalGuard {
+    stdout: io::Stdout,
+}
+
+impl TerminalGuard {
+    fn new() -> Result<Self, io::Error> {
+        let mut stdout = io::stdout();
+        terminal::enable_raw_mode()?;
+        execute!(
+            stdout,
+            terminal::EnterAlternateScreen,
+            cursor::Hide,
+            terminal::Clear(terminal::ClearType::All)
+        )?;
+
+        Ok(Self { stdout })
+    }
+
+    // Get mutable access to the stdout
+    fn get_stdout(&mut self) -> &mut io::Stdout {
+        &mut self.stdout
+    }
+}
+
+impl Drop for TerminalGuard {
+    fn drop(&mut self) {
+        // Ignore errors during drop - we're doing best effort cleanup
+        let _ = execute!(
+            self.stdout,
+            cursor::Show,
+            terminal::Clear(terminal::ClearType::All),
+            terminal::LeaveAlternateScreen,
+        );
+        let _ = terminal::disable_raw_mode();
+    }
 }
 
 fn main() -> Result<(), error::TartsError> {
@@ -100,16 +139,14 @@ fn main() -> Result<(), error::TartsError> {
         return check::run_test_for_effect(&effect, frames);
     }
 
-    let mut stdout = io::stdout();
+    // Check if valid before entering alternate screen
+    if !VALID_SAVERS.contains(&args.screen_saver.as_str()) {
+        println!("Unknown screen saver: {}", args.screen_saver);
+        println!("{}", HELP);
+        return Ok(());
+    }
 
-    terminal::enable_raw_mode()?;
-    execute!(
-        stdout,
-        terminal::EnterAlternateScreen,
-        cursor::Hide,
-        terminal::Clear(terminal::ClearType::All)
-    )?;
-
+    let mut guard = TerminalGuard::new()?;
     let (width, height) = terminal::size()?;
 
     let fps = match args.screen_saver.as_str() {
@@ -119,55 +156,47 @@ fn main() -> Result<(), error::TartsError> {
                 rain::digital_rain::DigitalRain::default_options(width, height);
             let mut digital_rain =
                 rain::digital_rain::DigitalRain::new(options, (width, height));
-            common::run_loop(&mut stdout, &mut digital_rain, None)?
+            common::run_loop(guard.get_stdout(), &mut digital_rain, None)?
         }
         "life" => {
             // let options = config.get_life_options((width, height));
             let options = life::ConwayLife::default_options(width, height);
             let mut conway_life = life::ConwayLife::new(options, (width, height));
-            common::run_loop(&mut stdout, &mut conway_life, None)?
+            common::run_loop(guard.get_stdout(), &mut conway_life, None)?
         }
         "maze" => {
             // let options = config.get_maze_options((width, height));
             let options = maze::Maze::default_options(width, height);
             let mut maze = maze::Maze::new(options, (width, height));
-            common::run_loop(&mut stdout, &mut maze, None)?
+            common::run_loop(guard.get_stdout(), &mut maze, None)?
         }
         "boids" => {
             // let options = config.get_boids_options((width, height));
             let options = boids::Boids::default_options(width, height);
             let mut boids = boids::Boids::new(options);
-            common::run_loop(&mut stdout, &mut boids, None)?
+            common::run_loop(guard.get_stdout(), &mut boids, None)?
         }
         "blank" => {
             let options = blank::BlankOptionsBuilder::default().build().unwrap();
             let mut check = blank::Blank::new(options, (width, height));
-            common::run_loop(&mut stdout, &mut check, None)?
+            common::run_loop(guard.get_stdout(), &mut check, None)?
         }
         "cube" => {
             // let options = config.get_cube_options();
             let options = cube::effect::Cube::default_options(width, height);
             let mut cube = cube::Cube::new(options, (width, height));
-            common::run_loop(&mut stdout, &mut cube, None)?
+            common::run_loop(guard.get_stdout(), &mut cube, None)?
         }
         "crab" => {
             let options = crab::Crab::default_options(width, height);
             let mut crab = crab::Crab::new(options, (width, height));
-            common::run_loop(&mut stdout, &mut crab, None)?
+            common::run_loop(guard.get_stdout(), &mut crab, None)?
         }
         _ => {
-            println!("Pick screensaver: [matrix, life, maze]");
+            println!("Pick screensaver: [matrix, life, maze, boids, cube, crab]");
             0.0
         }
     };
-
-    execute!(
-        stdout,
-        cursor::Show,
-        terminal::Clear(terminal::ClearType::All),
-        terminal::LeaveAlternateScreen,
-    )?;
-    terminal::disable_raw_mode()?;
 
     println!("Frames per second: {}", fps);
     Ok(())
