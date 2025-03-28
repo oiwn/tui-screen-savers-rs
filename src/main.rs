@@ -195,7 +195,7 @@ fn main() -> Result<(), error::TartsError> {
             common::run_loop(guard.get_stdout(), &mut crab, None)?
         }
         "donut" => {
-            let options = donut::DonutOptionsBuilder::default().build().unwrap();
+            let options = donut::Donut::default_options(width, height);
             let mut donut = donut::Donut::new(options, (width, height));
             common::run_loop(guard.get_stdout(), &mut donut, None)?
         }
