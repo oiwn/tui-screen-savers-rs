@@ -88,7 +88,7 @@ impl Donut {
         let mut output = vec![' '; width * height];
 
         // gruvbox gradient
-        let colors = vec![
+        let colors = [
             style::Color::Rgb {
                 r: 213,
                 g: 196,
