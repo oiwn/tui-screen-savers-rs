@@ -72,7 +72,6 @@ impl Donut {
     }
 
     fn render_donut(&self, buffer: &mut Buffer) {
-        // Clear the buffer first
         buffer.fill_with(&Cell::default());
 
         let width = self.screen_size.0 as usize;
@@ -87,6 +86,22 @@ impl Donut {
         // Create a zbuffer and output buffer
         let mut zbuffer = vec![0.0; width * height];
         let mut output = vec![' '; width * height];
+
+        // gruvbox gradient
+        let colors = vec![
+            style::Color::Rgb { r: 213, g: 196, b: 161 }, 
+            style::Color::Rgb { r: 213, g: 196, b: 161 }, 
+            style::Color::Rgb { r: 213, g: 196, b: 161 }, 
+            style::Color::Rgb { r: 213, g: 196, b: 161 }, 
+            style::Color::Rgb { r: 251, g: 241, b: 199 }, 
+            style::Color::Rgb { r: 251, g: 241, b: 199 }, 
+            style::Color::Rgb { r: 69, g: 133, b: 136 },
+            style::Color::Rgb { r: 104, g: 157, b: 106 },
+            style::Color::Rgb { r: 152, g: 151, b: 26 },  
+            style::Color::Rgb { r: 215, g: 153, b: 33 },
+            style::Color::Rgb { r: 214, g: 93, b: 14 },
+            style::Color::Rgb { r: 204, g: 36, b: 29 }
+        ];
 
         // Theta goes around the cross-sectional circle of a torus
         for theta in 0..314 {
@@ -116,14 +131,11 @@ impl Donut {
                 let z_inv = 1.0 / z;
 
                 // Project into 2D
-                let x_proj = (width as f32 / 2.0
-                    + self.options.k1
-                        * z_inv
-                        * x
-                        )
+                let x_proj =
+                    (width as f32 / 2.0 + self.options.k1 * z_inv * x) as usize;
+                let y_proj = (height as f32 / 2.0
+                    + self.options.k1 * z_inv * y * 0.8)
                     as usize;
-                let y_proj =
-                    (height as f32 / 2.0 + self.options.k1 * z_inv * y * 0.8) as usize;
 
                 // Calculate luminance
                 let l = cos_phi * cos_theta * sin_b
@@ -148,17 +160,18 @@ impl Donut {
             }
         }
 
-        // Draw the output buffer
         for y in 0..height {
             for x in 0..width {
                 let idx = y * width + x;
                 if output[idx] != ' ' {
+                    let luminance_index = self.options.luminance_chars.iter().position(|&r| r == output[idx]).unwrap_or(0);
+                    let color = colors[luminance_index % colors.len()];
                     buffer.set(
                         x,
                         y,
                         Cell::new(
                             output[idx],
-                            style::Color::Green,
+                            color,
                             style::Attribute::Bold,
                         ),
                     );
