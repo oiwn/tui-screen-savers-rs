@@ -74,8 +74,9 @@ use crate::config::Config;
 
 const HELP: &str =
     "Terminal screensavers, run with arg: matrix, life, maze, boids, cube, crab";
-const VALID_SAVERS: &[&str] =
-    &["matrix", "life", "maze", "boids", "blank", "cube", "crab", "donut"];
+const VALID_SAVERS: &[&str] = &[
+    "matrix", "life", "maze", "boids", "blank", "cube", "crab", "donut",
+];
 
 #[derive(Debug)]
 struct AppArgs {
@@ -200,7 +201,9 @@ fn main() -> Result<(), error::TartsError> {
             common::run_loop(guard.get_stdout(), &mut donut, None)?
         }
         _ => {
-            println!("Pick screensaver: [matrix, life, maze, boids, cube, crab, donut]");
+            println!(
+                "Pick screensaver: [matrix, life, maze, boids, cube, crab, donut]"
+            );
             0.0
         }
     };

@@ -116,14 +116,11 @@ impl Donut {
                 let z_inv = 1.0 / z;
 
                 // Project into 2D
-                let x_proj = (width as f32 / 2.0
-                    + self.options.k1
-                        * z_inv
-                        * x
-                        )
+                let x_proj =
+                    (width as f32 / 2.0 + self.options.k1 * z_inv * x) as usize;
+                let y_proj = (height as f32 / 2.0
+                    + self.options.k1 * z_inv * y * 0.8)
                     as usize;
-                let y_proj =
-                    (height as f32 / 2.0 + self.options.k1 * z_inv * y * 0.8) as usize;
 
                 // Calculate luminance
                 let l = cos_phi * cos_theta * sin_b
