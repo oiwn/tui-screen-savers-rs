@@ -18,6 +18,7 @@
 - 🐦 **Boids**: Witness the emergent flocking behavior of these simulated birds
 - 🧊 **3D Cube**: Renders a rotating 3D cube using terminal graphics with braille patterns for higher resolution.
 - 🦀 **Crab**: Animated crabs walking across your screen, interacting with each other and the environment.
+- - 🍩 **Rotating Donut**: A mesmerizing rotating donut rendered in the terminal
 
 ## 🚀 Installation
 
@@ -40,6 +41,7 @@ tarts maze    # Watch a maze generate itself
 tarts boids   # Bird-like flocking simulation
 tarts cube    # 3d rotating cube using braille patterns
 tarts crab    # Ferris the crab with collisions
+tarts donut  # Rotating donut
 ```
 
 Press `q` or `Esc` to exit (or even Ctrl+C).
@@ -81,6 +83,5 @@ This project is licensed under the [MIT License](https://opensource.org/licenses
 ### More?
 
 - Args parser to run with configuration (yaml or something)
-- add rotating donut? https://www.a1k0n.net/2011/07/20/donut-math.html
 - add pipes? https://asciinema.org/a/427066
 - add cellular automation like https://www.reddit.com/r/neovim/comments/z70mg3/cellularautomatonnvim_my_first_plugin/
