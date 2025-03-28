@@ -19,8 +19,6 @@ pub struct DonutOptions {
     pub distance: f32,
     #[builder(default = "25.0")]
     pub k1: f32,
-    #[builder(default = "true")]
-    pub use_braille: bool,
     #[builder(
         default = "vec!['.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@']"
     )]
@@ -122,10 +120,10 @@ impl Donut {
                     + self.options.k1
                         * z_inv
                         * x
-                        * (height as f32 / width as f32 * 2.0))
+                        )
                     as usize;
                 let y_proj =
-                    (height as f32 / 2.0 + self.options.k1 * z_inv * y) as usize;
+                    (height as f32 / 2.0 + self.options.k1 * z_inv * y * 0.8) as usize;
 
                 // Calculate luminance
                 let l = cos_phi * cos_theta * sin_b
@@ -173,15 +171,14 @@ impl Donut {
 impl DefaultOptions for Donut {
     type Options = DonutOptions;
 
-    fn default_options(_width: u16, _height: u16) -> Self::Options {
+    fn default_options(width: u16, height: u16) -> Self::Options {
         DonutOptionsBuilder::default()
             .inner_radius(1.0)
             .outer_radius(2.0)
             .rotation_speed_a(0.07)
             .rotation_speed_b(0.03)
-            .distance(5.0)
-            .k1(25.0)
-            .use_braille(false)
+            .distance(5.5)
+            .k1((width.min(height) as f32) * 0.8)
             .luminance_chars(vec![
                 '.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@',
             ])
