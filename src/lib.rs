@@ -6,6 +6,7 @@ pub mod common;
 pub mod config;
 pub mod crab;
 pub mod cube;
+pub mod donut;
 pub mod error;
 pub mod life;
 pub mod maze;

@@ -68,12 +68,15 @@ mod life;
 mod maze;
 mod rain;
 
+mod donut;
+
 use crate::config::Config;
 
 const HELP: &str =
     "Terminal screensavers, run with arg: matrix, life, maze, boids, cube, crab";
-const VALID_SAVERS: &[&str] =
-    &["matrix", "life", "maze", "boids", "blank", "cube", "crab"];
+const VALID_SAVERS: &[&str] = &[
+    "matrix", "life", "maze", "boids", "blank", "cube", "crab", "donut",
+];
 
 #[derive(Debug)]
 struct AppArgs {
@@ -192,8 +195,15 @@ fn main() -> Result<(), error::TartsError> {
             let mut crab = crab::Crab::new(options, (width, height));
             common::run_loop(guard.get_stdout(), &mut crab, None)?
         }
+        "donut" => {
+            let options = donut::Donut::default_options(width, height);
+            let mut donut = donut::Donut::new(options, (width, height));
+            common::run_loop(guard.get_stdout(), &mut donut, None)?
+        }
         _ => {
-            println!("Pick screensaver: [matrix, life, maze, boids, cube, crab]");
+            println!(
+                "Pick screensaver: [matrix, life, maze, boids, cube, crab, donut]"
+            );
             0.0
         }
     };
